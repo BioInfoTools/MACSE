@@ -2,3 +2,5 @@
 /Documentation/*.toc
 /Documentation/*.aux
 /Documentation/*.synctex.gz
+/Documentation/*.blg
+/Documentation/*.bbl

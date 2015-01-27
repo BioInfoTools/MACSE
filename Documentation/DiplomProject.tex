@@ -1,6 +1,7 @@
 \documentclass[a4paper,12pt]{article} %размер бумаги устанавливаем А4, шрифт 12пунктов
 \usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
+
 \usepackage[english,russian]{babel} %используем русский и английский языки с переносами
 \usepackage{amssymb,amsfonts,amsmath,mathtext,cite,enumerate,float} %подключаем нужные пакеты расширений
 \usepackage[dvips]{graphicx} 
@@ -10,7 +11,7 @@
 
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm,bindingoffset=0cm]{geometry} % Меняем поля страницы
 
-\begin{document}
+\begin{document} 
 \input{DiplomProject-Title} 
 
 \renewcommand{\baselinestretch}{1.5}
@@ -22,5 +23,15 @@
 \renewcommand{\contentsname}{\centering Содержание}
 \tableofcontents % это оглавление, которое генерируется автоматически
 
+% введение
 \input{DiplomIntroduction}
+
+% оглавление
+\clearpage
+\newpage
+\bibliographystyle{utf8gost705u}  %% стилевой файл для оформления по ГОСТу
+\begin{flushleft}
+\bibliography{biblio}     %% имя библиографической базы (bib-файла) 
+\end{flushleft}
+
 \end{document}
