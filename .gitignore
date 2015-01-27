@@ -1,0 +1,4 @@
+/Documentation/*.log
+/Documentation/*.toc
+/Documentation/*.aux
+/Documentation/*.synctex.gz
