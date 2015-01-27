@@ -1,0 +1,2 @@
+\select@language {russian}
+\contentsline {part}{\IeC {\CYRV }\IeC {\CYRV }\IeC {\CYRE }\IeC {\CYRD }\IeC {\CYRE }\IeC {\CYRN }\IeC {\CYRI }\IeC {\CYRE }}{3}

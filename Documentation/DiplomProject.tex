@@ -1,0 +1,26 @@
+\documentclass[a4paper,12pt]{article} %размер бумаги устанавливаем А4, шрифт 12пунктов
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel} %используем русский и английский языки с переносами
+\usepackage{amssymb,amsfonts,amsmath,mathtext,cite,enumerate,float} %подключаем нужные пакеты расширений
+\usepackage[dvips]{graphicx} 
+\graphicspath{{images/}} %путь к рисункам
+
+\usepackage[nooneline]{caption} \captionsetup[table]{justification=raggedleft} \captionsetup[figure]{justification=centering,labelsep=endash}
+
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm,bindingoffset=0cm]{geometry} % Меняем поля страницы
+
+\begin{document}
+\input{DiplomProject-Title} 
+
+\renewcommand{\baselinestretch}{1.5}
+
+\renewcommand{\abstractname}{{Аннотация}}
+\input{DiplomAbstract}
+\clearpage
+
+\renewcommand{\contentsname}{\centering Содержание}
+\tableofcontents % это оглавление, которое генерируется автоматически
+
+\input{DiplomIntroduction}
+\end{document}
