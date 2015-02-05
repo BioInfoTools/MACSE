@@ -4,12 +4,20 @@
 
 \usepackage[english,russian]{babel} %используем русский и английский языки с переносами
 \usepackage{amssymb,amsfonts,amsmath,mathtext,cite,enumerate,float} %подключаем нужные пакеты расширений
-\usepackage[dvips]{graphicx} 
-\graphicspath{{images/}} %путь к рисункам
+
+\usepackage[pdftex]{graphicx, color}
+\usepackage{subfigure}
+\usepackage{color}
+\usepackage{listings}
+
+\DeclareGraphicsExtensions{.png,.pdf,.jpg,.mps}
+\graphicspath{{pictures/chapter1/}} %путь к рисункам
+\usepackage{bmpsize}
 
 \usepackage[nooneline]{caption} \captionsetup[table]{justification=raggedleft} \captionsetup[figure]{justification=centering,labelsep=endash}
 
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm,bindingoffset=0cm]{geometry} % Меняем поля страницы
+
 
 \begin{document} 
 \input{DiplomProject-Title} 
@@ -25,6 +33,12 @@
 
 % введение
 \input{DiplomIntroduction}
+
+% глава 1
+\input{Chapter1}
+
+% заключение
+\input{Conclusion}
 
 % оглавление
 \clearpage
