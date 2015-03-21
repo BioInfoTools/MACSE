@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1426677652 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/main.cpp
+	"Aligners.h"
+	<iostream>
+
+1426687062 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/NeedlmanWunsch.cpp
+	"Aligners.h"
+	<algorithm>
+	<string.h>
+
+1426593316 /home/pavel/Documents/BMSTU/Диплом/Source/multy/Aligners.h
+	<string>
+
+1426537951 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/ScoreMatrix.cpp
+

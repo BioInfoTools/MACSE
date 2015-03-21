@@ -81,6 +81,7 @@ void NeedlmanWunsch :: NewStrings(std::string s1, std::string s2) {
         F[i * m] = F[(i-1) * m] + gap_extension;
         W[i * m] = 3;
     }
+    F[0] = 0;
 }
 
 void NeedlmanWunsch :: NewScoreMatrix(std::string score_matrix) {

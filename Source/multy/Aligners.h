@@ -39,3 +39,7 @@ class NeedlmanWunsch: public AlignMethod {
 		void ChangeGapOpen(int new_value) { gap_open = new_value; }
 		void ChangeGapExtension(int new_value) { gap_extension = new_value; }
 };
+
+class MACSE: public AlignMethod {
+
+};
