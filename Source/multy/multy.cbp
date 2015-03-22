@@ -34,9 +34,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="AlignMethod.cpp" />
 		<Unit filename="Aligners.h" />
+		<Unit filename="Hein.cpp" />
 		<Unit filename="NeedlmanWunsch.cpp" />
-		<Unit filename="ScoreMatrix.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
