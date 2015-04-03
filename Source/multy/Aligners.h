@@ -12,8 +12,13 @@ class AlignMethod {
 		std::string align1, align2;
 		int gap_open, gap_extension;
 		int result_score;
+		//матрицы для ДП
+		int* F = NULL;  //матрица очков
+		int* W = NULL;  //матрица обратного хода
+		int n, m; // размеры строк +1
 		//замена матрицы совпадений
 		void NewScoreMatrix(std::string file_name, int* score_matrix);
+		void IniFW();
 	public:
 		virtual ~AlignMethod() { }
 		//метод выравнивания
@@ -22,18 +27,17 @@ class AlignMethod {
 		int GetScore() { return result_score; }
 		string_tuple GetAlign() { return std::make_pair(align1, align2); }
 		//модификаторы
-		void ChangeGapOpen(int new_value) { gap_open = new_value; }
-		void ChangeGapExtension(int new_value) { gap_extension = new_value; }
+		void ChangeGapOpen(int new_value) { gap_open = new_value; IniFW(); }
+		void ChangeGapExtension(int new_value) {
+            gap_extension = new_value;
+            IniFW();
+        }
 };
 
 class NeedlmanWunsch: public AlignMethod {
 	private:
         //матрица замен
         int score_matrix[128*128];
-        //матрицы для ДП
-		int* F = NULL;  //матрица очков
-		int* W = NULL;  //матрица обратного хода
-		int n, m; // размеры строк +1
 	public:
         NeedlmanWunsch(std::string s1, std::string s2,
                        std::string score_matrix,
@@ -50,10 +54,9 @@ class NeedlmanWunsch: public AlignMethod {
 
 class Hein: public AlignMethod {
 	private:
-        int n, m, gap_frame;
-		int* F = NULL;
-		int* W = NULL;
-        std::string AAseq1, AAseq2;
+        int gap_frame, stop_cost;
+		std::string AAseq1, AAseq2;
+		std::string AAalign1, AAalign2;
         int nt_score_matrix[128*128];
         int aa_score_matrix[128*128];
         std::string TranslateNTtoAA(std::string& s);
@@ -61,10 +64,11 @@ class Hein: public AlignMethod {
         Hein(std::string s1, std::string s2,
               std::string nt_score_matrix,
               std::string aa_score_matrix,
-              int gap_open, int gap_extension, int frame_gap);
+              int stop_cost, int gap_open, int gap_extension, int frame_gap);
         virtual ~Hein() { }
         //====================
         string_tuple Align();
+        string_tuple Align_old();
         //====================
 		void ChangeNTscoreMatrix(std::string file_name) {
             NewScoreMatrix(file_name, nt_score_matrix);
@@ -73,6 +77,7 @@ class Hein: public AlignMethod {
             NewScoreMatrix(file_name, aa_score_matrix);
 		}
 		void ChangeStrings(std::string s1, std::string s2);
+		string_tuple GetAAalign() { return std::make_pair(AAalign1,AAalign2); }
 };
 
 #endif

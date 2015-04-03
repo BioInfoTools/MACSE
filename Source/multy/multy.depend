@@ -1,24 +1,25 @@
 # depslib dependency file v1.0
-1427040270 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/main.cpp
+1428078182 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/main.cpp
 	"Aligners.h"
 	<iostream>
+	<stdlib.h>
 
-1427038225 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/NeedlmanWunsch.cpp
+1428065868 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/NeedlmanWunsch.cpp
 	"Aligners.h"
 	<string.h>
 	<algorithm>
 
-1427040090 /home/pavel/Documents/BMSTU/Диплом/Source/multy/Aligners.h
+1428077610 /home/pavel/Documents/BMSTU/Диплом/Source/multy/Aligners.h
 	<string>
 
 1426940926 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/ScoreMatrix.cpp
 
-1427040452 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/Hein.cpp
+1428078156 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/Hein.cpp
 	"Aligners.h"
 	<string.h>
 	<algorithm>
 
-1427023470 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/AlignMethod.cpp
+1428055852 source:/home/pavel/Documents/BMSTU/Диплом/Source/multy/AlignMethod.cpp
 	"Aligners.h"
 	<fstream>
 	<iostream>

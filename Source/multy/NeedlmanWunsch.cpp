@@ -72,15 +72,5 @@ void NeedlmanWunsch :: ChangeStrings(std::string s1, std::string s2) {
     if (W) delete W;
     F = new int [n * m];
     W = new int [n * m];
-    memset(W, 0, sizeof(int)*n*m);
-    F[0] = gap_open;
-	for (int j = 1; j < m; j++) {
-        F[j] = F[j - 1] + gap_extension;
-        W[j] = 3;
-    }
-	for (int i = 1; i < n; i++) {
-        F[i * m] = F[(i-1) * m] + gap_extension;
-        W[i * m] = 2;
-    }
-    F[0] = 0;
+    IniFW();
 }

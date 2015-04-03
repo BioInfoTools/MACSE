@@ -3,18 +3,351 @@
 #include <string.h>
 #include <algorithm>
 
+#define MAXINT 0x7FFFFFFF
+
 Hein :: Hein(std::string s1, std::string s2,
              std::string nt_score_matrix, std::string aa_score_matrix,
-             int gap_open, int gap_extension, int gap_frame) {
+             int stop_cost, int gap_open, int gap_extension, int gap_frame) {
     this->gap_open = gap_open;
     this->gap_frame = gap_frame;
 	this->gap_extension = gap_extension;
+	this->stop_cost = stop_cost;
 	ChangeStrings(s1, s2);
     ChangeNTscoreMatrix(nt_score_matrix);
     ChangeAAscoreMatrix(aa_score_matrix);
 }
 
 string_tuple Hein :: Align() {
+    for (int i = 1; i < n; i++) {
+        for (int j = 1; j < m; j++) {
+            //трансляция
+            char AA1 = '?', AA2 = '?';
+            if (i > 2) AA1 = AAseq1[i-3];
+            if (j > 2) AA2 = AAseq2[j-3];
+            //проверка на стоп-кодоны
+            int stopS1, stopS2;
+            stopS1 = (AA1 == '*') ? stop_cost : 0;
+            stopS2 = (AA2 == '*') ? stop_cost : 0;
+            //замена на AA уровне
+            int subst_AA;
+            if (AA1 == '*' || AA2 == '*') subst_AA = stopS1 + stopS2;
+            else if (i - 3 >= 0 && j - 3 >= 0)
+                    subst_AA = aa_score_matrix[AA1*128 + AA2];
+            else subst_AA = MAXINT;
+            //вычисляем оптимальный ход
+            //NT align
+            int score = F[(i-1)*m + j - 1], way = 12;
+            if (j - 2 >= 0 && score < F[(i-1)*m + j-2]) {
+                score = F[(i-1)*m + j - 2];
+                way = 13;
+            }
+            if (i - 2 >= 0 && score < F[(i-2)*m + j-1]) {
+                score = F[(i-2)*m + j-1];
+                way = 14;
+            }
+            if (i - 2 >= 0 && score < F[(i-2)*m + j-2]) {
+                score = F[(i-2)*m + j-2];
+                way = 15;
+            }
+            score += 2 * gap_frame;
+            //AA align
+            int tmp;
+            if (i-3 >= 0) {
+                tmp = F[(i-3)*m + j] + stopS1 + gap_extension;
+                if (W[(i-3)*m + j] > 6) tmp += gap_open;
+                if (score <= tmp) {
+                    score = tmp;
+                    way = 1;
+                }
+            }
+            if (j-3 >= 0) {
+                tmp = F[i*m + j-3] + stopS2 + gap_extension;
+                if (W[i*m + j-3] > 6) tmp += gap_open;
+                if (score <= tmp) {
+                    score = tmp;
+                    way = 2;
+                }
+            }
+            if (i-3 >= 0 && j-3 >= 0 && score <= F[(i-3)*m+j-3] + subst_AA) {
+                score = F[(i-3)*m+j-3] + subst_AA;
+                way = 7;
+            }
+            //AA & NT
+            if (i > 2 && j > 1 && score < F[(i-3)*m+j-2]+stopS1+gap_frame) {
+                score = F[(i-3)*m+j-2]+stopS1+gap_frame;
+                way = 8;
+            }
+            if (i > 2 && score < F[(i-3)*m + j-1] + stopS1 + gap_frame) {
+                score = F[(i-3)*m + j-1] + stopS1 + gap_frame;
+                way = 9;
+            }
+            if (i > 1 && j > 2 && score < F[(i-2)*m+j-3]+stopS2+gap_frame) {
+                score = score < F[(i-2)*m+j-3]+stopS2+gap_frame;
+                way = 10;
+            }
+            if (j > 2 && score < F[(i-1)*m + j-3] + stopS2 + gap_frame) {
+                score = F[(i-3)*m+j-2]+stopS2+gap_frame;
+                way = 11;
+            }
+            //NT gap
+            tmp = F[i*m+j-1] + gap_extension + gap_frame;
+            if (W[i*m+j-1] > 6) tmp += gap_open;
+            if (score < tmp) {
+                score = tmp;
+                way = 3;
+            }
+            if (j > 1) {
+                tmp = F[i*m+j-2] + gap_extension + gap_frame;
+                if (W[i*m+j-2] > 6) tmp += gap_open;
+                if (score < tmp) {
+                    score = tmp;
+                    way = 4;
+                }
+            }
+            tmp = F[(i-1)*m+j] + gap_extension + gap_frame;
+            if (W[(i-1)*m+j] > 6) tmp += gap_open;
+            if (score < tmp) {
+                score = tmp;
+                way = 5;
+            }
+            if (i > 1) {
+                tmp = F[(i-2)*m+j] + gap_extension + gap_frame;
+                if (W[(i-2)*m+j] > 6) tmp += gap_open;
+                if (score < tmp) {
+                    score = tmp;
+                    way = 6;
+                }
+            }
+            //сохраняем оптимальный шаг
+            F[i*m+j] = score;
+            W[i*m+j] = way;
+        }
+    }
+    //обратный ход, получение ответа
+	result_score = F[n*m-1];
+	int i = n-1, j = m-1;
+	int count1, count2, count3;
+	while (i > 0 || j > 0) {
+        switch (W[i*m + j]) {
+            //AA level
+            case 7:
+                //AA match
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                AAalign1 += AAseq1[i];
+                AAalign2 += AAseq2[j];
+                break;
+            case 1:
+                //AA gap seq2
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align2 += "---";
+                AAalign1 += AAseq1[i];
+                AAalign2 += '-';
+                break;
+            case 2:
+                //AA gap seq1
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                align1 += "---";
+                AAalign1 += '-';
+                AAalign2 += AAseq2[j];
+                break;
+            //AA & NT
+            case 8:
+                //NT gap seq2
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                AAalign1 += AAseq1[i];
+                AAalign2 += '!';
+                count1 = nt_score_matrix[seq1[i]*128 + seq2[j-2]] +
+                         nt_score_matrix[seq1[i+1]*128 + seq2[j-1]];
+                count2 = nt_score_matrix[seq1[i]*128 + seq2[j-2]] +
+                         nt_score_matrix[seq1[i+2]*128 + seq2[j-1]];
+                count3 = nt_score_matrix[seq1[i+1]*128 + seq2[j-2]] +
+                         nt_score_matrix[seq1[i+2]*128 + seq2[j-1]];
+                if (count1 > count2 && count1 > count3) {
+                    align2 += '-';
+                    align2 += seq2[--j];
+                    align2 += seq2[--j];
+                } else if (count2 > count1 && count2 > count3) {
+                    align2 += seq2[--j];
+                    align2 += '-';
+                    align2 += seq2[--j];
+                } else {
+                    align2 += seq2[--j];
+                    align2 += seq2[--j];
+                    align2 += '-';
+                }
+                break;
+            case 9:
+                //NT gap seq2
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                AAalign1 += AAseq1[i];
+                AAalign2 += '!';
+                count1 = nt_score_matrix[seq1[i]*128 + seq2[j-1]];
+                count2 = nt_score_matrix[seq1[i+1]*128 + seq2[j-1]];
+                count3 = nt_score_matrix[seq1[i+2]*128 + seq2[j-1]];
+                if (count1 > count2 && count1 > count3) {
+                    align2 += '-';
+                    align2 += '-';
+                    align2 += seq2[--j];
+                } else if (count2 > count1 && count2 > count3) {
+                    align2 += '-';
+                    align2 += seq2[--j];
+                    align2 += '-';
+                } else {
+                    align2 += seq2[--j];
+                    align2 += '-';
+                    align2 += '-';
+                }
+                break;
+            case 10:
+                //NT gap seq1
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                AAalign2 += AAseq2[j];
+                AAalign1 += '!';
+                count1 = nt_score_matrix[seq1[i-2]*128 + seq2[j]] +
+                         nt_score_matrix[seq1[i-1]*128 + seq2[j+1]];
+                count2 = nt_score_matrix[seq1[i-2]*128 + seq2[j]] +
+                         nt_score_matrix[seq1[i-1]*128 + seq2[j+2]];
+                count3 = nt_score_matrix[seq1[i-2]*128 + seq2[j+1]] +
+                         nt_score_matrix[seq1[i-1]*128 + seq2[j+2]];
+                if (count1 > count2 && count1 > count3) {
+                    align1 += '-';
+                    align1 += seq1[--i];
+                    align1 += seq1[--i];
+                } else if (count2 > count1 && count2 > count3) {
+                    align1 += seq1[--i];
+                    align1 += '-';
+                    align1 += seq1[--i];
+                } else {
+                    align1 += seq1[--i];
+                    align1 += seq1[--i];
+                    align1 += '-';
+                }
+                break;
+            case 11:
+                //NT gap seq1
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                AAalign2 += AAseq2[j];
+                AAalign1 += '!';
+                count1 = nt_score_matrix[seq1[i-1]*128 + seq2[j]];
+                count2 = nt_score_matrix[seq1[i-1]*128 + seq2[j+1]];
+                count3 = nt_score_matrix[seq1[i-1]*128 + seq2[j+2]];
+                if (count1 > count2 && count1 > count3) {
+                    align1 += '-';
+                    align1 += '-';
+                    align1 += seq1[--i];
+                } else if (count2 > count1 && count2 > count3) {
+                    align1 += '-';
+                    align1 += seq1[--i];
+                    align1 += '-';
+                } else {
+                    align1 += seq1[--i];
+                    align1 += '-';
+                    align1 += '-';
+                }
+                break;
+            //NT gap
+            case 3:
+                align1 += '-';
+                align2 += seq2[--j];
+                AAalign1 += '-';
+                AAalign2 += '!';
+                break;
+            case 4:
+                align1 += '-';
+                align1 += '-';
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                AAalign1 += '-';
+                AAalign2 += '!';
+                break;
+            case 5:
+                align1 += seq1[--i];
+                align2 += '-';
+                AAalign1 += '!';
+                AAalign2 += '-';
+                break;
+            case 6:
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align2 += '-';
+                align2 += '-';
+                AAalign1 += '!';
+                AAalign2 += '-';
+                break;
+            //NT level
+            case 12:
+                align1 += seq1[--i];
+                align2 += seq2[--j];
+                AAalign1 += '!';
+                AAalign2 += '!';
+                break;
+            case 13:
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                count1 = nt_score_matrix[seq1[i-1]*128 + seq2[j]];
+                count2 = nt_score_matrix[seq1[i-1]*128 + seq2[j+1]];
+                if (count1 > count2) {
+                    align1 += '-';
+                    align1 += seq1[--i];
+                } else {
+                    align1 += seq1[--i];
+                    align1 += '-';
+                }
+                AAalign1 += '!';
+                AAalign2 += '!';
+                break;
+            case 14:
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                count1 = nt_score_matrix[seq1[i]*128 + seq2[j-1]];
+                count2 = nt_score_matrix[seq1[i+1]*128 + seq2[j-1]];
+                if (count1 > count2) {
+                    align2 += '-';
+                    align2 += seq2[--j];
+                } else {
+                    align2 += seq2[--j];
+                    align2 += '-';
+                }
+                AAalign1 += '!';
+                AAalign2 += '!';
+                break;
+            case 15:
+                align1 += seq1[--i];
+                align1 += seq1[--i];
+                align2 += seq2[--j];
+                align2 += seq2[--j];
+                AAalign1 += '!';
+                AAalign2 += '!';
+                break;
+        }
+    }
+    std::reverse(align1.begin(), align1.end());
+    std::reverse(align2.begin(), align2.end());
+
+    std::reverse(AAalign1.begin(), AAalign1.end());
+    std::reverse(AAalign2.begin(), AAalign2.end());
+
+    return std::make_pair(align1, align2);
+}
+
+string_tuple Hein :: Align_old() {
     for (int i = 1; i < 3 && i < n; i++)
         for (int j = 1; j < m; j++) {
             //оставить все как есть
@@ -115,6 +448,7 @@ string_tuple Hein :: Align() {
 	//обратный ход, получение ответа
 	result_score = F[n*m-1];
 	int i = n-1, j = m-1;
+	int len_mark = 0;
 	while (i > 0 || j > 0) {
         switch (W[i*m + j]) {
             case 1:
@@ -123,6 +457,9 @@ string_tuple Hein :: Align() {
                 align2 += seq2[--j];
                 align2 += seq2[--j];
                 align2 += seq2[--j];
+                AAalign1 += '-';
+                AAalign2 += AAseq2[j];
+                len_mark = 0;
                 break;
             case 2:
                 //AA gap seq2
@@ -130,21 +467,39 @@ string_tuple Hein :: Align() {
                 align1 += seq1[--i];
                 align1 += seq1[--i];
                 align2 += "---";
+                AAalign1 += AAseq1[i];
+                AAalign2 += '-';
+                len_mark = 0;
                 break;
             case 3:
                 //NT gap seq1
                 align1 += '-';
-                align2 += seq1[--j];
+                align2 += seq2[--j];
+                if (!len_mark) {
+                    AAalign1 += '-';
+                    AAalign2 += '!';
+                }
+                len_mark = (len_mark + 1) % 3;
                 break;
             case 4:
                 //NT gap seq2
                 align1 += seq1[--i];
                 align2 += '-';
+                if (!len_mark) {
+                    AAalign1 += '!';
+                    AAalign2 += '-';
+                }
+                len_mark = (len_mark + 1) % 3;
                 break;
             case 5:
                 //NT match
                 align1 += seq1[--i];
                 align2 += seq2[--j];
+                if (!len_mark) {
+                    AAalign1 += '!';
+                    AAalign2 += '!';
+                }
+                len_mark = (len_mark + 1) % 3;
                 break;
             case 6:
                 //AA match
@@ -154,11 +509,17 @@ string_tuple Hein :: Align() {
                 align2 += seq2[--j];
                 align2 += seq2[--j];
                 align2 += seq2[--j];
+                AAalign1 += AAseq1[i];
+                AAalign2 += AAseq2[j];
+                len_mark = 0;
                 break;
         }
     }
     std::reverse(align1.begin(), align1.end());
     std::reverse(align2.begin(), align2.end());
+
+    std::reverse(AAalign1.begin(), AAalign1.end());
+    std::reverse(AAalign2.begin(), AAalign2.end());
 
     return std::make_pair(align1, align2);
 }
@@ -291,7 +652,8 @@ std::string Hein :: TranslateNTtoAA(std::string& s) {
 
 void Hein :: ChangeStrings(std::string s1, std::string s2) {
     seq1 = s1; seq2 = s2;
-    align1 = ""; align2 = "";
+    align1 = align2 = "";
+    AAalign1 = AAalign2 = "";
     AAseq1 = TranslateNTtoAA(seq1);
     AAseq2 = TranslateNTtoAA(seq2);
     result_score = 0;
@@ -301,16 +663,5 @@ void Hein :: ChangeStrings(std::string s1, std::string s2) {
     if (W) delete W;
     F = new int [n * m];
     W = new int [n * m];
-    memset(W, 0, sizeof(int)*n*m);
-    F[0] = gap_open;
-	for (int j = 1; j < m; j++) {
-        F[j] = F[j - 1] + gap_extension;
-        W[j] = 3;
-    }
-	for (int i = 1; i < n; i++) {
-        F[i * m] = F[(i-1) * m] + gap_extension;
-        W[i * m] = 2;
-    }
-    F[0] = 0;
-    W[0] = 0;
+    IniFW();
 }
