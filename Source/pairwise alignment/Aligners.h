@@ -78,6 +78,9 @@ class Hein: public AlignMethod {
 		}
 		void ChangeStrings(std::string s1, std::string s2);
 		string_tuple GetAAalign() { return std::make_pair(AAalign1,AAalign2); }
+		// надо дописать реализацию !!!
+		void ReloadToMACSE();
+		void ReloadToHein();
 };
 
 #endif
