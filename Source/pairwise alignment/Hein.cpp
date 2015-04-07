@@ -665,3 +665,28 @@ void Hein :: ChangeStrings(std::string s1, std::string s2) {
     W = new int [n * m];
     IniFW();
 }
+
+void Hein :: ReloadToMACSE() {
+	align1 = align2 = AAalign1 = AAalign2 = "";
+	memset(W, 0, sizeof(int)*n*m);
+	F[0] = gap_open;
+	for (int i = 3; i < n; i++) {
+		F[i * m] = F[(i-3) * m] + gap_extension;
+		if (AAseq1[i-3] == '*') F[i * m] += stop_cost;
+		W[i * m] = 1;
+	}
+	for (int j = 3; j < m; j++) {
+		F[j] = F[j - 3] + gap_extension;
+		if (AAseq2[j-3] == '*') F[j] += stop_cost;
+		W[j] = 2;
+	}
+	if (n) {
+		F[1] = gap_open + gap_extension + gap_frame;
+		if (n > 1) F[2] = gap_open + gap_extension + gap_frame;
+	}
+	if (m) {
+		F[m] = gap_open + gap_extension + gap_frame;
+		if (m > 1) F[2*m] = gap_open + gap_extension + gap_frame;
+	}
+	F[0] = 0;
+}

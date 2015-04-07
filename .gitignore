@@ -4,11 +4,3 @@
 /Documentation/*.synctex.gz
 /Documentation/*.blg
 /Documentation/*.bbl
-/Source/ *out*
-/Source/ blosum.txt
-/Source/ test_align.cpp
-/Source/ python_helper.py
-/Source/pairwise aligment/obj/*
-/Source/pairwise aligment/*.cbp
-/Source/pairwise aligment/*.depended
-/Source/pairwise aligment/*.layout
