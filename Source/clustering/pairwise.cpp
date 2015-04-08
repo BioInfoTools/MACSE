@@ -19,12 +19,29 @@ int main(int argc, char** argv) {
 			gap_frame = atoi(argv[7]);
 			stop_cost = atoi(argv[8]);
 		}
+		//Выравнивание
+		string_tuple result;
 		//Нидлман-Вунш
+		/*
 		NeedlmanWunsch nw(str1, str2, NTsubs, gap_open, gap_extension);
-		string_tuple result = nw.Align();
+		nw.Align();
+		result = nw.GetAAalign(AAsubs, gap_frame);
+		*/
+		Hein h(str1, str2, NTsubs, AAsubs, stop_cost, gap_open, gap_extension, gap_frame);
+		//Hein 
+		/*
+		h.LoadHein();
+		h.Align_old();
+		result = h.GetAAalign();
+		*/
+		//MACSE
+		h.LoadMACSE();
+		h.Align();
+		result = h.GetAAalign();
+		//Ответ
 		std::cout << result.first  << std::endl;
 		std::cout << result.second << std::endl;
-		std::cout << nw.GetScore() << std::endl;
+		std::cout << h.GetScore() << std::endl;
 	} else std::cout << "Wrong argument count!" << std::endl;
 	return 0;
 }

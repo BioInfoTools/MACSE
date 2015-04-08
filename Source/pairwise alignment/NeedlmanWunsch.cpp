@@ -12,6 +12,173 @@ NeedlmanWunsch :: NeedlmanWunsch(std::string s1, std::string s2,
     NewScoreMatrix(score_matrix, this->score_matrix);
 }
 
+char NeedlmanWunsch :: TranslateNTtoAA(std::string& s, int i) {
+		if (s[i] == '-' && s[i+1] == '-' && s[i+2] == '-') return '-';
+		if (s[i] == '-' || s[i+1] == '-' || s[i+2] == '-') return '!';
+    char result;
+					switch (s[i]) {
+            case 'A':
+                switch (s[i+1]) {
+                    case 'A':
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = 'K';
+                                break;
+                            default:
+                                result = 'N';
+                        }
+                        break;
+                    case 'C':
+                        result = 'T';
+                        break;
+                    case 'G':
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = 'R';
+                                break;
+                            default:
+                                result = 'S';
+                        }
+                        break;
+                    default:
+                        switch (s[i+2]) {
+                            case 'G':
+                                result = 'M'; //start
+                                break;
+                            default:
+                                result = 'I';
+                        }
+                }
+                break;
+            case 'C':
+                switch (s[i+1]) {
+                    case 'A':
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = 'Q';
+                                break;
+                            default:
+                                result = 'H';
+                        }
+                        break;
+                    case 'C':
+                        result = 'P';
+                        break;
+                    case 'G':
+                        result = 'R';
+                        break;
+                    default:
+                        result = 'L';
+                }
+                break;
+            case 'G':
+                switch (s[i+1]) {
+                    case 'A':
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = 'E';
+                                break;
+                            default:
+                                result = 'D';
+                        }
+                        break;
+                    case 'C':
+                        result = 'A';
+                        break;
+                    case 'G':
+                        result = 'G';
+                        break;
+                    default:
+                        result = 'V';
+                }
+                break;
+            default:
+                switch (s[i+1]) {
+                    case 'A':
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = '*'; //stop
+                                break;
+                            default:
+                                result = 'Y';
+                        }
+                        break;
+                    case 'C':
+                        result = 'S';
+                        break;
+                    case 'G':
+                        switch (s[i+2]) {
+                            case 'A':
+                                result = '*'; //stop
+                                break;
+                            case 'G':
+                                result = 'W';
+                                break;
+                            default:
+                                result = 'C';
+                        }
+                        break;
+                    default:
+                        switch (s[i+2]) {
+                            case 'A':
+                            case 'G':
+                                result = 'L';
+                                break;
+                            default:
+                                result = 'F';
+                        }
+                }
+        }
+   
+    return result;
+}
+
+
+string_tuple NeedlmanWunsch :: GetAAalign(std::string AAscore_matrix, int gap) {
+	//загружаем матрицу замен 
+	int aa_score_matrix[128*128];
+	NewScoreMatrix(AAscore_matrix, aa_score_matrix);
+	//выбор рамки
+	int max_score = 0x80000000, shift;
+	for (int frame_shift = 0; frame_shift < 3; frame_shift++) {
+			int tek_score = 0;
+			for (int i = frame_shift; i < align1.length() - 2; i += 3) {
+					char aa1 = TranslateNTtoAA(align1, i);
+					char aa2 = TranslateNTtoAA(align2, i);
+					if (aa1 == '!') tek_score += gap;
+					if (aa2 == '!') tek_score += gap;
+					if (aa1 == '-') tek_score += gap_extension;
+					if (aa2 == '-') tek_score += gap_extension;
+					if (aa1 != '!' && aa1 != '-' && aa2 != '!' && aa2 != '-')
+							tek_score += aa_score_matrix[aa1*128 + aa2];
+			}
+			if (tek_score > max_score) {
+				max_score = tek_score;
+				shift = frame_shift;
+			}
+	}
+	std::string result1 = "";
+	std::string result2 = "";
+	if (shift) {
+		result1 += '!';
+		result2 += '!';
+	}
+	for (int i = shift; i < align1.length() - 2; i += 3) {
+			result1 += TranslateNTtoAA(align1, i);
+			result2 += TranslateNTtoAA(align2, i);
+	}
+	if ((align1.length() - shift) % 3) {
+		result1 += '!';
+		result2 += '!';
+	}
+	return std::make_pair(result1, result2);
+}
+
 string_tuple NeedlmanWunsch :: Align() {
     //прямой проход
     for (int i = 1; i < n; i++) {

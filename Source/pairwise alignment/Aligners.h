@@ -38,6 +38,7 @@ class NeedlmanWunsch: public AlignMethod {
 	private:
         //матрица замен
         int score_matrix[128*128];
+				char TranslateNTtoAA(std::string& s, int i);
 	public:
         NeedlmanWunsch(std::string s1, std::string s2,
                        std::string score_matrix,
@@ -45,6 +46,7 @@ class NeedlmanWunsch: public AlignMethod {
         virtual ~NeedlmanWunsch() { if (F) delete [] F; if (W) delete [] W; }
         //====================
         string_tuple Align();
+				string_tuple GetAAalign(std::string AAscore_matrix, int gap);
         //====================
 		void ChangeScoreMatrix(std::string file_name) {
             NewScoreMatrix(file_name, score_matrix);
@@ -78,7 +80,8 @@ class Hein: public AlignMethod {
 		}
 		void ChangeStrings(std::string s1, std::string s2);
 		string_tuple GetAAalign() { return std::make_pair(AAalign1,AAalign2); }
-		void ReloadToMACSE();
+		void LoadMACSE();
+		void LoadHein();
 		void ReloadToHein() { align1=align2=AAalign1=AAalign2=""; IniFW(); };
 };
 

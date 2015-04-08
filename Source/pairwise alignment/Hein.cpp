@@ -45,7 +45,7 @@ string_tuple Hein :: Align() {
                 score = F[(i-2)*m + j-1];
                 way = 14;
             }
-            if (i - 2 >= 0 && score < F[(i-2)*m + j-2]) {
+            if (i - 2 >= 0 && j-2 >= 0 && score < F[(i-2)*m + j-2]) {
                 score = F[(i-2)*m + j-2];
                 way = 15;
             }
@@ -86,7 +86,7 @@ string_tuple Hein :: Align() {
                 way = 10;
             }
             if (j > 2 && score < F[(i-1)*m + j-3] + stopS2 + gap_frame) {
-                score = F[(i-3)*m+j-2]+stopS2+gap_frame;
+                score = F[(i-1)*m+j-3]+stopS2+gap_frame;
                 way = 11;
             }
             //NT gap
@@ -663,10 +663,9 @@ void Hein :: ChangeStrings(std::string s1, std::string s2) {
     if (W) delete W;
     F = new int [n * m];
     W = new int [n * m];
-    IniFW();
 }
 
-void Hein :: ReloadToMACSE() {
+void Hein :: LoadMACSE() {
 	align1 = align2 = AAalign1 = AAalign2 = "";
 	memset(W, 0, sizeof(int)*n*m);
 	F[0] = gap_open;
@@ -680,13 +679,52 @@ void Hein :: ReloadToMACSE() {
 		if (AAseq2[j-3] == '*') F[j] += stop_cost;
 		W[j] = 2;
 	}
+	if (m) {
+		F[1] = gap_open + gap_extension + gap_frame;
+		W[1] = 3;
+		if (m > 1) {
+			F[2] = gap_open + gap_extension + gap_frame;
+			W[2] = 4; 
+		}
+	}
+	if (n) {
+		F[m] = gap_open + gap_extension + gap_frame;
+		W[m] = 5;
+		if (n > 1) {
+			F[2*m] = gap_open + gap_extension + gap_frame;
+			W[2*m] = 6;
+		}
+	}
+	F[0] = 0;
+}
+
+void Hein :: LoadHein() {
+	align1 = align2 = AAalign1 = AAalign2 = "";
+	memset(W, 0, sizeof(int)*n*m);
+	F[0] = gap_open;
+	for (int j = 3; j < m; j++) {
+		F[j] = F[j - 3] + gap_extension;
+		W[j] = 1;
+	}
+	for (int i = 3; i < n; i++) {
+		F[i * m] = F[(i-3) * m] + gap_extension;
+		W[i * m] = 2;
+	}	
 	if (n) {
 		F[1] = gap_open + gap_extension + gap_frame;
-		if (n > 1) F[2] = gap_open + gap_extension + gap_frame;
+		W[1] = 3;
+		if (n > 1) {
+			F[2] = gap_open + gap_extension + gap_frame;
+			W[2] = 3;
+		}
 	}
 	if (m) {
 		F[m] = gap_open + gap_extension + gap_frame;
-		if (m > 1) F[2*m] = gap_open + gap_extension + gap_frame;
+		W[m] = 4;
+		if (m > 1) {
+			F[2*m] = gap_open + gap_extension + gap_frame;
+			W[2*m] = 4;
+		}
 	}
 	F[0] = 0;
 }

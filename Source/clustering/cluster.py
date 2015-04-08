@@ -24,6 +24,8 @@ for filename in sys.argv[1:]:
 			for line in process.stdout:
 				#last symbol is \n
 				result.append(line[:len(line)-1])
+			print result[0]
+			print result[1]
 			A[i, j] = int(result[2])
 	print A
 
