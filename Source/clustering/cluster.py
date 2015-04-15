@@ -36,6 +36,7 @@ for filename in sys.argv[1:]:
 				print "Error while trying to align sequences:"
 				print sequences[i]
 				print sequences[j]
+				print ''.join(map(lambda x: x + ' ', cmd))
 				sys.exit()
 			A[i, j] = int(result[2])
 			S.append((result[0], result[1]))
