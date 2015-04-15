@@ -4,18 +4,26 @@ import numpy as np
 import subprocess
 import sys
 
-def read_FASTA_strings(filename):
+def readFASTA(filename):
+	headers = []
+	strings = []
 	with open(filename) as file:
-		return file.read().split('>')[1:]
+		for line in file:
+			if line.startswith('#'): continue
+			if line.startswith('>'): 
+				headers.append(line[1:len(line)-1])
+				strings.append("")
+			else: 
+				strings[len(strings)-1] += line[:len(line)-1]
+	return headers, strings
 
-def read_FASTA_sequences(filename):
-	return map(lambda seq: ''.join(seq.split('\n')[1:]), read_FASTA_strings(filename))
-
+if len(sys.argv) == 1: print "No files to align"
 for filename in sys.argv[1:]:
-	sequences = read_FASTA_sequences(filename)
+	headers, sequences = readFASTA(filename)
 	#each sequence is a single cluster
 	#calc first table
 	A = np.zeros((len(sequences), len(sequences)))
+	S = []
 	for i in range(len(sequences)):
 		for j in range(i + 1, len(sequences)):
 			cmd = ['./pairwise', sequences[i], sequences[j]]
@@ -24,8 +32,13 @@ for filename in sys.argv[1:]:
 			for line in process.stdout:
 				#last symbol is \n
 				result.append(line[:len(line)-1])
-			print result[0]
-			print result[1]
+			if len(result) != 3:
+				print "Error while trying to align sequences:"
+				print sequences[i]
+				print sequences[j]
+				sys.exit()
 			A[i, j] = int(result[2])
+			S.append((result[0], result[1]))
 	print A
-
+	for elem in S:
+		print elem
