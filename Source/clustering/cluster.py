@@ -40,6 +40,7 @@ for filename in sys.argv[1:]:
 				sys.exit()
 			A[i, j] = int(result[2])
 			S.append((result[0], result[1]))
+			print ''.join(map(lambda x: x + ' ', cmd))
 	print A
 	for elem in S:
 		print elem

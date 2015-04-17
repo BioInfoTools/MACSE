@@ -210,12 +210,16 @@ string_tuple NeedlmanWunsch :: Align() {
 	int i = n-1, j = m-1;
 	//поиск минимума в последней строке
 	for (int index = 0; index < m-1; index++) 
-		if (F[(n-1)*m+index] > result_score) j = index;
+		if (F[(n-1)*m+index] > result_score) {
+			j = index;
+			result_score = F[(n-1)*m+index];
+		}
 	//поиск минимума в последнем столбце
 	for (int index = 0; index < n-1; index++) 
 		if (F[index*m + m-1] > result_score) {
 			i = index; 
-			j=m-1;
+			j = m-1;
+			result_score = F[index*m + m-1];
 		}
 	//i, j - точка минимума
 	if (m-1-j) {
