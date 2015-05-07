@@ -26,5 +26,6 @@ struct Profile {
 
 // UPGMA function change input sequences!
 void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner);
+void UPGMAfree();
 
 #endif

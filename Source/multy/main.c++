@@ -30,8 +30,7 @@ int main(int argc, char** argv) {
 		} else if (argc != 2) cout << WARN << endl;
 		//===============
 		cout << "Reading sequences..." << endl;
-		std::vector<BioSeq*> data;
-		ReadFastaFile(input_fasta, data);
+		std::vector<BioSeq*> data; ReadFastaFile(input_fasta, data);
 		cout << data.size() << " sequences were obtained" << endl; 
 		cout << "Input parameters:" << endl;
 		cout << "NT substitution matrix\t" << NTsubs << endl;
@@ -52,6 +51,7 @@ int main(int argc, char** argv) {
 		for_each(data.begin(), data.end(), [] (BioSeq* seq) {seq->PrintAA(cout);} );
 		// free memory
 		for_each(data.begin(), data.end(), [] (BioSeq* seq) { delete seq; } );
+		UPGMAfree();
 	} else {
 		std::cout << "ERROR: you must type an input file name" << endl;
 		std::cout << HELP << std::endl;

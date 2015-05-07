@@ -5,6 +5,13 @@
 
 #define MAXINT 0x7FFFFFFF
 
+// global tables for merge profiles
+// memory allocation in Profile::operator +
+// free in UPGMAfree
+int* best_mvt = NULL;
+int* scores = NULL;
+int dim = 0;
+
 void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	int* matrix = new int[sequences.size() * sequences.size()];
 	Profile* profiles = new Profile[sequences.size()];
@@ -71,7 +78,44 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	delete[] profiles;
 }
 
-Profile& Profile :: operator + (const Profile& another) {
-	
-	return ;
+inline void UPGMAfree() { 
+	if (best_mvt) delete[] best_mvt;
+	if (scores) delete[] scores;
+	dim = 0;
 }
+
+Profile& Profile :: operator + (const Profile& another) {
+	// zero check
+	if (another.sequences.size() == 0)
+		return *this;
+	if (sequences.size() == 0) {
+		sequences = another.sequences;
+		return *this;
+	}
+	// reallocate memory (if necessary)
+	int new_size = 1;
+	int dim1 = sequences[0]->Length(), dim2 = another.sequences[0]->Length();
+	while (dim1 + 1 > new_size || dim2 + 1 > new_size) {
+		new_size *= 2;
+	}
+	if (new_size > dim) {
+		UPGMAfree();
+		best_mvt = new short[dim*dim];
+		scores = new int[dim*dim];
+		dim = new_size;
+	}
+	// initialization
+	memset(best_mvt, 0, sizeof(int)*dim*dim);
+	memset(scores, 0, sizeof(int)*dim*dim);
+	// calculating new profile
+	//  * fill score matrix
+	for (int i = 1; i < dim1; i++) {
+		for (int j = 1; j < dim2; j++) {
+			
+		}
+	}
+	//  * update sequences
+	
+	return *this;
+}
+
