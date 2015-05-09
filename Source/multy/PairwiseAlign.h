@@ -29,6 +29,11 @@ public:
 	void ChangeAAscoreMatrix(const char* file_name) {
 		NewScoreMatrix(file_name, aa_score_matrix);
 	}
+	//====================
+	// use this methods to share filled score matrices
+	// if you remove them, it will remain on your conscience
+	const int* GetNTscoreMatrix() { return (const int*)nt_score_matrix; }
+	const int* GetAAscoreMatrix() { return (const int*)aa_score_matrix; }
 };
 
 #endif

@@ -100,7 +100,7 @@ Profile& Profile :: operator + (const Profile& another) {
 	}
 	if (new_size > dim) {
 		UPGMAfree();
-		best_mvt = new short[dim*dim];
+		best_mvt = new int[dim*dim];
 		scores = new int[dim*dim];
 		dim = new_size;
 	}
@@ -111,6 +111,7 @@ Profile& Profile :: operator + (const Profile& another) {
 	//  * fill score matrix
 	for (int i = 1; i < dim1; i++) {
 		for (int j = 1; j < dim2; j++) {
+			// 27 possible moves
 			
 		}
 	}
@@ -119,3 +120,30 @@ Profile& Profile :: operator + (const Profile& another) {
 	return *this;
 }
 
+int Profile :: ColumnNTscore(const Profile& another, int index) {
+	int score = 0;
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		char char1 = sequences[i]->nt_seq[index];
+		if (char1 == '-') continue;
+		for (unsigned int j = 0; j < another.sequences.size(); j++) {
+			char char2 = another.sequences[j]->nt_seq[index];
+			if (char2 == '-') continue;
+			score += nt_score_matrix[char1*128+char2];
+		}
+	}
+	return score;
+}
+
+int Profile :: ColumnAAscore(const Profile& another, int index) {
+	int score = 0;
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		char char1 = sequences[i]->TranslateNTtoAA(index);
+		if (char1 == '-' || char1 == '!') continue;
+		for (unsigned int j = 0; j < another.sequences.size(); j++) {
+			char char2 = another.sequences[j]->TranslateNTtoAA(index);
+			if (char2 == '-' || char2 == '!') continue;
+			score += aa_score_matrix[char1*128+char2];
+		}
+	}
+	return score;
+}

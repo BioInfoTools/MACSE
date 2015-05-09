@@ -10,18 +10,25 @@
 struct Profile {
 	// data
 	std::vector<BioSeq*> sequences;
+	const int* nt_score_matrix = NULL; // int array [128*128]
+	const int* aa_score_matrix = NULL; // int array [128*128]
 	// constructor
 	Profile() { };
 	// destructor
 	~Profile() {
+		// everything will be deleted in main program
 		/*
 		for_each(sequences.begin(), sequences.end(), 
 			[] (BioSeq* seq) { delete seq; } );
+		delete[] nt_score_matrix;
+		delete[] aa_score_matrix;
 		*/
-		// each sequence will be deleted in main programm!
 	};
 	// alignment of two profiles
 	Profile& operator + (const Profile& another);
+	// get score in column
+	int ColumnNTscore(const Profile& another, int index);
+	int ColumnAAscore(const Profile& another, int index);
 };
 
 // UPGMA function change input sequences!

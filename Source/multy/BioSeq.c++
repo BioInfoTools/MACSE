@@ -4,7 +4,7 @@
 
 std::string BioSeq :: GetAAseq() {
 	std::string result = "";
-	for (unsigned int i = 0; i < nt_seq.length(); i += 3) {
+	for (unsigned int i = 0; i+2 < nt_seq.length(); i += 3) {
 		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') 
 			result += '-';
 		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') 
@@ -133,7 +133,7 @@ std::string BioSeq :: GetAAseq() {
 }
 
 void BioSeq :: PrintAA(std::ostream& out) {
-	for (unsigned int i = 0; i < nt_seq.length(); i += 3) {
+	for (unsigned int i = 0; i+2 < nt_seq.length(); i += 3) {
 		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') 
 			out << '-';
 		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') 
@@ -262,6 +262,7 @@ void BioSeq :: PrintAA(std::ostream& out) {
 }
 
 char BioSeq :: TranslateNTtoAA(int i) const {
+	if (nt_seq.length() < (unsigned int)i+3) return '!'; // check sequence tail
 	if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') return '-';
 	if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') return '!';
 	char result;
