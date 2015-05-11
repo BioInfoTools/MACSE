@@ -12,6 +12,7 @@ struct Profile {
 	std::vector<BioSeq*> sequences;
 	const int* nt_score_matrix = NULL; // int array [128*128]
 	const int* aa_score_matrix = NULL; // int array [128*128]
+	int frequency[128];
 	// constructor
 	Profile() { };
 	// destructor
@@ -25,10 +26,12 @@ struct Profile {
 		*/
 	};
 	// alignment of two profiles
-	Profile& operator + (const Profile& another);
+	Profile& operator + (Profile& another);
 	// get score in column
-	int ColumnNTscore(const Profile& another, int index);
-	int ColumnAAscore(const Profile& another, int index);
+	float ColumnNTscore(Profile& another, int index1, int index2);
+	float ColumnAAscore(Profile& another, int index1, int index2);
+	// fill an array of frequency
+	void CalcFrequencies(int position);
 };
 
 // UPGMA function change input sequences!

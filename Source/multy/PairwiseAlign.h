@@ -19,7 +19,7 @@ private:
 public:
 	PairwiseAlign(const char* nt_score_matrix, const char* aa_score_matrix,
 			int stop_cost, int gap_open, int gap_extension, int frame_gap);
-	~PairwiseAlign() { if (F) delete[] F; }
+	~PairwiseAlign() { if (F) delete[] F; if (W) delete[] W; }
 	//====================
 	int Align(const BioSeq* s1, const BioSeq* s2);
 	//====================
@@ -34,6 +34,12 @@ public:
 	// if you remove them, it will remain on your conscience
 	const int* GetNTscoreMatrix() { return (const int*)nt_score_matrix; }
 	const int* GetAAscoreMatrix() { return (const int*)aa_score_matrix; }
+	//====================
+	// accessors
+	int GetGapOpen() { return gap_open; } 
+	int GetGapExtension() { return gap_extension; } 
+	int GetGapFrame() { return gap_frame; } 
+	int GetStopCost() { return stop_cost; } 
 };
 
 #endif

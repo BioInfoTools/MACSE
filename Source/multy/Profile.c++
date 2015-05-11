@@ -8,9 +8,12 @@
 // global tables for merge profiles
 // memory allocation in Profile::operator +
 // free in UPGMAfree
-int* best_mvt = NULL;
-int* scores = NULL;
+unsigned int* best_mvt = NULL;
+float* scores = NULL;
 int dim = 0;
+
+// array of parameters for the aligner profiles 
+int parameters[4]; 
 
 void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	int* matrix = new int[sequences.size() * sequences.size()];
@@ -31,6 +34,10 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 			}
 		}
 	}
+	parameters[0] = aligner.GetGapOpen();
+	parameters[1] = aligner.GetGapExtension();
+	parameters[2] = aligner.GetGapFrame();
+	parameters[3] = aligner.GetStopCost();
 	int alive = sequences.size();
 	bool* corpse = new bool[sequences.size()];
 	memset(corpse, false, sizeof(bool)*sequences.size()); // everybody is alive
@@ -76,15 +83,20 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	}
 	delete[] matrix;
 	delete[] profiles;
+	// comment next line if you want to use UPGMA again for other sequences
+	// and call UPGMAfree in main program in the end
+	UPGMAfree();
 }
 
 inline void UPGMAfree() { 
 	if (best_mvt) delete[] best_mvt;
 	if (scores) delete[] scores;
+	best_mvt = NULL;
+	scores = NULL;
 	dim = 0;
 }
 
-Profile& Profile :: operator + (const Profile& another) {
+Profile& Profile :: operator + (Profile& another) {
 	// zero check
 	if (another.sequences.size() == 0)
 		return *this;
@@ -100,19 +112,268 @@ Profile& Profile :: operator + (const Profile& another) {
 	}
 	if (new_size > dim) {
 		UPGMAfree();
-		best_mvt = new int[dim*dim];
-		scores = new int[dim*dim];
+		best_mvt = new unsigned int[dim*dim];
+		scores = new float[dim*dim];
 		dim = new_size;
 	}
 	// initialization
-	memset(best_mvt, 0, sizeof(int)*dim*dim);
-	memset(scores, 0, sizeof(int)*dim*dim);
+	memset(best_mvt, 0xFF, sizeof(int)*dim*dim);
+	memset(scores, 0, sizeof(float)*dim*dim);
 	// calculating new profile
 	//  * fill score matrix
 	for (int i = 1; i < dim1; i++) {
 		for (int j = 1; j < dim2; j++) {
-			// 27 possible moves
-			
+			/* 25 possible moves
+				NT align (x10)
+				================
+				X | XX | -X | XX
+				- | -X | XX | XX
+				================
+				- | XX | X- | X
+				X | X- | XX | X
+				================
+				  | XX | -- |
+				  | -- | XX |
+			*/
+			float score = ColumnNTscore(another, i-1, j-1) + scores[(i-1)*dim+j-1];
+			int way = 15;
+			if (j - 1 >= 0) {
+				if (best_mvt[i*dim+j-1] < 8 // gap extension
+					&& score < scores[i*dim+j-1] + parameters[1]) {
+					score = scores[i*dim+j-1] + parameters[1];
+					way = 1;
+				} else if (best_mvt[i*dim+j-1] > 7 // gap open
+					&& score < scores[i*dim+j-1] + parameters[0]) {
+					score = scores[i*dim+j-1] + parameters[0];
+					way = 1;
+				}
+			}
+			if (i - 1 >= 0) {
+				if (best_mvt[(i-1)*dim+j] > 7 && best_mvt[(i-1)*dim+j] < 15 
+					&& score < scores[(i-1)*dim+j] + parameters[1]) {
+					score = scores[(i-1)*dim+j] + parameters[1];
+					way = 8;
+				} else if ((best_mvt[(i-1)*dim+j] > 14 || best_mvt[(i-1)*dim+j] < 8)
+					&& score < scores[(i-1)*dim+j] + parameters[0]) {
+					score = scores[(i-1)*dim+j] + parameters[0];
+					way = 8;
+				}
+			}
+			if (i - 2 >= 0 && j - 2 >= 0) {
+				if (score < ColumnNTscore(another, i-1, j-1) 
+					+ ColumnNTscore(another, i-2, j-2)) {
+					score = ColumnNTscore(another, i-1, j-1) 
+						+ ColumnNTscore(another, i-2, j-2);
+					way = 16;
+				}
+			}
+			if (i - 2 >= 0 && j - 1 >= 0) {
+				if (best_mvt[(i-2)*dim+j-1] < 8
+					&& score < scores[(i-2)*dim+j-1] + parameters[1] 
+					+ ColumnNTscore(another, i-1, j-1)) {
+					score = scores[(i-2)*dim+j-1] + parameters[1] 
+						+ ColumnNTscore(another, i-1, j-1);
+					way = 17;
+				} else if (best_mvt[(i-2)*dim+j-1] > 7
+					&& score < scores[(i-2)*dim+j-1] + parameters[0] 
+					+ ColumnNTscore(another, i-1, j-1)) {
+					score = scores[(i-2)*dim+j-1] + parameters[0] 
+						+ ColumnNTscore(another, i-1, j-1);
+					way = 17;
+				} 
+				if (score < scores[(i-2)*dim+j-1] + ColumnNTscore(another, i-2, j-1) 
+					+ parameters[0]) {
+					score = scores[(i-2)*dim+j-1] + ColumnNTscore(another, i-2, j-1) 
+						+ parameters[0];
+					way = 2;
+				}
+			}
+			if (i - 1 >= 0 && j - 2 >= 0) {
+				if (best_mvt[(i-1)*dim+j-2] > 7 && best_mvt[(i-1)*dim+j-2] < 15
+					&& score < scores[(i-1)*dim+j-2] + parameters[1] 
+					+ ColumnNTscore(another, i-1, j-1)) {
+					score = scores[(i-1)*dim+j-2] + parameters[1] 
+						+ ColumnNTscore(another, i-1, j-1);
+					way = 18;
+				} else if ((best_mvt[(i-1)*dim+j-2] > 14 || best_mvt[(i-1)*dim+j-2] < 8)
+					&& score < scores[(i-1)*dim+j-2] + parameters[0] 
+					+ ColumnNTscore(another, i-1, j-1)) {
+					score = scores[(i-1)*dim+j-2] + parameters[0] 
+						+ ColumnNTscore(another, i-1, j-1);
+					way = 18;
+				} 
+				if (score < scores[(i-1)*dim+j-2] + ColumnNTscore(another, i-1, j-2) 
+					+ parameters[0]) {
+					score = scores[(i-1)*dim+j-2] + ColumnNTscore(another, i-1, j-2) 
+						+ parameters[0];
+					way = 9;
+				}
+			}
+			if (i - 2 >= 0) {
+				if (best_mvt[(i-2)*dim+j] < 8 
+					&& score < scores[(i-2)*dim+j] + parameters[1] * 2) {
+					score = scores[(i-2)*dim+j] + parameters[1] * 2;
+					way = 3;
+				} else if (best_mvt[(i-2)*dim+j] > 7 
+					&& score < scores[(i-2)*dim+j] + parameters[0] + parameters[1]) {
+					score = scores[(i-2)*dim+j] + parameters[0] + parameters[1];
+					way = 3;
+				}
+			}
+			if (j - 2 >= 0) {
+				if (best_mvt[i*dim+j-2] > 7 && best_mvt[i*dim+j-2] < 15
+					&& score < scores[i*dim+j-2] + parameters[1] * 2) {
+					score = scores[i*dim+j-2] + parameters[1] * 2;
+					way = 10;
+				} else if ((best_mvt[i*dim+j-2] > 14 || best_mvt[i*dim+j-2] < 8)
+					&& score < scores[i*dim+j-2] + parameters[0] + parameters[1]) {
+					score = scores[i*dim+j-2] + parameters[0] + parameters[1];
+					way = 10;
+				} 
+			}
+			score += parameters[2] * 2;
+			// AA align
+			if (i - 3 >= 0 && j - 3 >= 0) {
+				if (score < ColumnAAscore(another, i-3,j-3) 
+					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
+					+ ColumnNTscore(another, i-1, j-1)) {
+					score = ColumnAAscore(another, i-3,j-3) 
+					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
+					+ ColumnNTscore(another, i-1, j-1);
+					way = 19;
+				}
+			}
+			if (i - 3 >= 0 && j - 2 >= 0) {
+				if (best_mvt[(i-3)*dim+j-2] < 8) {
+					if (score < scores[(i-3)*dim+j-2] + ColumnNTscore(another, i-2, j-2) 
+						+ ColumnNTscore(another, i-1, j-1) + parameters[1]) {
+						score = scores[(i-3)*dim+j-2] + ColumnNTscore(another, i-2, j-2) 
+						+ ColumnNTscore(another, i-1, j-1) + parameters[1];
+						way = 20;
+					}
+				} else {
+					if (score < scores[(i-3)*dim+j-2] + ColumnNTscore(another, i-2, j-2) 
+						+ ColumnNTscore(another, i-1, j-1) + parameters[0]) {
+						score = scores[(i-3)*dim+j-2] + ColumnNTscore(another, i-2, j-2) 
+						+ ColumnNTscore(another, i-1, j-1) + parameters[0];
+						way = 20;
+					}
+				}
+				if (score < scores[(i-3)*dim+j-2] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-1, j-1) + parameters[0]) {
+					score = scores[(i-3)*dim+j-2] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-1, j-1) + parameters[0];
+					way = 22;
+				}
+				if (score < scores[(i-3)*dim+j-2] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-2, j-1) + parameters[0]) {
+					score = scores[(i-3)*dim+j-2] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-2, j-1) + parameters[0];
+					way = 4;
+				}
+			}
+			if (i - 3 >= 0 && j - 1 >= 0) {
+				int prev_gap = (best_mvt[(i-3)*dim+j-1] < 8) ? 1 : 0;
+				if (score < scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-1, j-1)
+					+ parameters[prev_gap] + parameters[1]) {
+					score = scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-1, j-1)
+					+ parameters[prev_gap] + parameters[1];
+					way = 23;
+				}
+				if (score < scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-2, j-1)
+					+ parameters[prev_gap] + parameters[0]) {
+					score = scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-2, j-1)
+					+ parameters[prev_gap] + parameters[0];
+					way = 5;
+				}
+				if (score < scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-3, j-1)
+					+ parameters[0] + parameters[1]) {
+					score = scores[(i-3)*dim+j-1] + ColumnNTscore(another,i-3, j-1)
+					+ parameters[0] + parameters[1];
+					way = 6;
+				}
+			}
+			if (i - 3 >= 0) {
+				if (best_mvt[(i-3)*dim+j-1] < 8) {
+					if (score < scores[(i-3)*dim+j] + parameters[1] * 3) {
+						score = scores[(i-3)*dim+j] + parameters[1] * 3;
+						way = 7;
+					}
+				} else {
+					if (score < scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0]) {
+						score = scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0];
+						way = 7;
+					}
+				}
+			}
+			//
+			if (i - 2 >= 0 && j - 3 >= 0) {
+				if (best_mvt[(i-2)*dim+j-3] > 7 && best_mvt[(i-2)*dim+j-3] < 15) {
+					if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
+						+ ColumnNTscore(another,i-1, j-1) + parameters[1]) {
+						score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
+						+ ColumnNTscore(another,i-1, j-1) + parameters[1];
+						way = 21;
+					}
+				} else {
+					if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
+						+ ColumnNTscore(another,i-1, j-1) + parameters[0]) {
+						score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
+						+ ColumnNTscore(another,i-1, j-1) + parameters[0];
+						way = 21;
+					}
+				}
+				if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
+					+ ColumnNTscore(another,i-1, j-1) + parameters[0]) {
+					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-1, j-1) + parameters[0];
+					way = 24;
+				}
+				if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
+					+ ColumnNTscore(another,i-1, j-2) + parameters[0]) {
+					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-3, j-2) 
+					+ ColumnNTscore(another,i-2, j-1) + parameters[0];
+					way = 11;
+				}
+			}
+			if (i - 1 >= 0 && j - 3 >= 0) {
+				int prev_gap = (best_mvt[(i-1)*dim+j-3] > 7 
+					&& best_mvt[(i-1)*dim+j-3] < 15) ? 1 : 0;
+				if (score < scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-1)
+					+ parameters[prev_gap] + parameters[1]) {
+					score = scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-1)
+					+ parameters[prev_gap] + parameters[1];
+					way = 25;
+				}
+				if (score < scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-2)
+					+ parameters[prev_gap] + parameters[0]) {
+					score = scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-2)
+					+ parameters[prev_gap] + parameters[0];
+					way = 12;
+				}
+				if (score < scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-3)
+					+ parameters[0] + parameters[1]) {
+					score = scores[(i-1)*dim+j-3] + ColumnNTscore(another,i-1, j-3)
+					+ parameters[0] + parameters[1];
+					way = 13;
+				}
+			}
+			if (j - 3 >= 0) {
+				if (best_mvt[i*dim+j-3] > 7 && best_mvt[i*dim+j-3] < 15) {
+					if (score < scores[i*dim+j-3] + parameters[1] * 3) {
+						score = scores[i*dim+j-3] + parameters[1] * 3;
+						way = 14;
+					}
+				} else {
+					if (score < scores[i*dim+j-3] + parameters[1] * 2 + parameters[0]) {
+						score = scores[i*dim+j-3] + parameters[1] * 2 + parameters[0];
+						way = 14;
+					}
+				}
+			}
+			// score & way contain best option
+			scores[i*dim+j] = score;
+			best_mvt[i*dim+j] = way;
 		}
 	}
 	//  * update sequences
@@ -120,30 +381,50 @@ Profile& Profile :: operator + (const Profile& another) {
 	return *this;
 }
 
-int Profile :: ColumnNTscore(const Profile& another, int index) {
-	int score = 0;
+float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
+	float score = 0;
+	float denominator = sequences.size() + another.sequences.size();
+	CalcFrequencies(index1); 
+	another.CalcFrequencies(index2);
 	for (unsigned int i = 0; i < sequences.size(); i++) {
-		char char1 = sequences[i]->nt_seq[index];
+		unsigned char char1 = sequences[i]->nt_seq[index1];
 		if (char1 == '-') continue;
 		for (unsigned int j = 0; j < another.sequences.size(); j++) {
-			char char2 = another.sequences[j]->nt_seq[index];
+			unsigned char char2 = another.sequences[j]->nt_seq[index2];
 			if (char2 == '-') continue;
-			score += nt_score_matrix[char1*128+char2];
+			float numerator = frequency[char1]+another.frequency[char2];
+			score += nt_score_matrix[char1*128+char2]*(numerator/denominator);
 		}
 	}
 	return score;
 }
 
-int Profile :: ColumnAAscore(const Profile& another, int index) {
-	int score = 0;
+float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
+	float score = 0;
+	float denominator = sequences.size() + another.sequences.size();
+	CalcFrequencies(index1); 
+	another.CalcFrequencies(index2);
 	for (unsigned int i = 0; i < sequences.size(); i++) {
-		char char1 = sequences[i]->TranslateNTtoAA(index);
-		if (char1 == '-' || char1 == '!') continue;
+		unsigned char char1 = sequences[i]->TranslateNTtoAA(index1);
+		if (char1 == '-' || char1 == '!' || char1 == '*') continue;
 		for (unsigned int j = 0; j < another.sequences.size(); j++) {
-			char char2 = another.sequences[j]->TranslateNTtoAA(index);
-			if (char2 == '-' || char2 == '!') continue;
-			score += aa_score_matrix[char1*128+char2];
+			unsigned char char2 = another.sequences[j]->TranslateNTtoAA(index2);
+			if (char2 == '-' || char2 == '!' || char2 == '*') continue;
+			float numerator = frequency[char1]+another.frequency[char2];
+			score += aa_score_matrix[char1*128+char2]*(numerator/denominator);
 		}
 	}
-	return score;
+	float addition1 = 2 * (frequency['!'] + another.frequency['!']) / denominator;
+	addition1 *= parameters[2]; // gap frame
+	float addition2 = 2 * (frequency['*'] + another.frequency['*']) / denominator;
+	addition2 *= parameters[3]; // stop cost
+	return score + addition1 + addition2;
+}
+
+void Profile :: CalcFrequencies(int position) {
+	memset(frequency, 0, sizeof(int)*128);
+	for_each(sequences.begin(), sequences.end(), 
+		[&](BioSeq* s) { 
+			frequency[(unsigned char)s->nt_seq[position]]++; 
+		} );
 }

@@ -51,7 +51,6 @@ int main(int argc, char** argv) {
 		for_each(data.begin(), data.end(), [] (BioSeq* seq) {seq->PrintAA(cout);} );
 		// free memory
 		for_each(data.begin(), data.end(), [] (BioSeq* seq) { delete seq; } );
-		UPGMAfree();
 	} else {
 		std::cout << "ERROR: you must type an input file name" << endl;
 		std::cout << HELP << std::endl;
