@@ -32,6 +32,17 @@ struct Profile {
 	float ColumnAAscore(Profile& another, int index1, int index2);
 	// fill an array of frequency
 	void CalcFrequencies(int position);
+	// insert gaps in sequences
+	void InsertGap(int pos, int count) {
+		for_each(sequences.begin(), sequences.end(), [pos, count] (BioSeq* s) {
+			if (count) s->nt_seq.insert(pos, count, '-');
+		});
+	}
+	void InsertGap(int pos) {
+		for_each(sequences.begin(), sequences.end(), [pos] (BioSeq* s) {
+			s->nt_seq.insert(pos, 1, '-');
+		});
+	}
 };
 
 // UPGMA function change input sequences!

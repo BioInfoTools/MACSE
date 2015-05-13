@@ -78,11 +78,11 @@ void PairwiseAlign :: NewScoreMatrix(const char* file_name, int* score_matrix) {
 }
 
 int PairwiseAlign :: Align(const BioSeq* s1, const BioSeq* s2) {
-	n = s1->nt_seq.length();
-	m = s2->nt_seq.length();
+	n = s1->nt_seq.length() + 1;
+	m = s2->nt_seq.length() + 1;
 	// check borders
 	int new_size = 1;
-	while (n+1 > new_size || m+1 > new_size) {
+	while (n > new_size || m > new_size) {
 		new_size *= 2;
 	}
 	// reallocate memory (if necessary)
@@ -115,110 +115,110 @@ int PairwiseAlign :: Align(const BioSeq* s1, const BioSeq* s2) {
 			// calculating optimal pass
 			// NT align
 			int score = nt_score_matrix[s1->nt_seq[i-1]*128+s2->nt_seq[j-1]]
-					+ F[(i-1)*m + j - 1];
+					+ F[(i-1)*size + j - 1];
 			int way = 12;
-			if (j - 2 >= 0 && score < F[(i-1)*m + j-2]) {
-				score = F[(i-1)*m + j - 2];
+			if (j - 2 >= 0 && score < F[(i-1)*size + j-2]) {
+				score = F[(i-1)*size + j - 2];
 				way = 13;
 			}
-			if (i - 2 >= 0 && score < F[(i-2)*m + j-1]) {
-				score = F[(i-2)*m + j-1];
+			if (i - 2 >= 0 && score < F[(i-2)*size + j-1]) {
+				score = F[(i-2)*size + j-1];
 				way = 14;
 			}
-			if (i - 2 >= 0 && j-2 >= 0 && score < F[(i-2)*m + j-2]) {
-				score = F[(i-2)*m + j-2];
+			if (i - 2 >= 0 && j-2 >= 0 && score < F[(i-2)*size + j-2]) {
+				score = F[(i-2)*size + j-2];
 				way = 15;
 			}
 			score += 2 * gap_frame;
 			// AA align
 			int tmp;
 			if (i-3 >= 0) {
-				tmp = F[(i-3)*m + j] + stopS1 + gap_extension;
-				if (W[(i-3)*m + j] > 6) tmp += gap_open;
+				tmp = F[(i-3)*size + j] + stopS1 + gap_extension;
+				if (W[(i-3)*size + j] > 6) tmp += gap_open;
 				if (score <= tmp) {
 					score = tmp;
 					way = 1;
 				}
 			}
 			if (j-3 >= 0) {
-				tmp = F[i*m + j-3] + stopS2 + gap_extension;
-				if (W[i*m + j-3] > 6) tmp += gap_open;
+				tmp = F[i*size + j-3] + stopS2 + gap_extension;
+				if (W[i*size + j-3] > 6) tmp += gap_open;
 				if (score <= tmp) {
 					score = tmp;
 					way = 2;
 				}
 			}
-			if (i-3 >= 0 && j-3 >= 0 && score <= F[(i-3)*m+j-3] + subst_AA) {
-				score = F[(i-3)*m+j-3] + subst_AA;
+			if (i-3 >= 0 && j-3 >= 0 && score <= F[(i-3)*size+j-3] + subst_AA) {
+				score = F[(i-3)*size+j-3] + subst_AA;
 				way = 7;
 			}
 			// AA & NT
-			if (i > 2 && j > 1 && score < F[(i-3)*m+j-2]+stopS1+gap_frame) {
-				score = F[(i-3)*m+j-2]+stopS1+gap_frame;
+			if (i > 2 && j > 1 && score < F[(i-3)*size+j-2]+stopS1+gap_frame) {
+				score = F[(i-3)*size+j-2]+stopS1+gap_frame;
 				way = 8;
 			}
-			if (i > 2 && score < F[(i-3)*m + j-1] + stopS1 + gap_frame) {
-				score = F[(i-3)*m + j-1] + stopS1 + gap_frame;
+			if (i > 2 && score < F[(i-3)*size + j-1] + stopS1 + gap_frame) {
+				score = F[(i-3)*size + j-1] + stopS1 + gap_frame;
 				way = 9;
 			}
-			if (i > 1 && j > 2 && score < F[(i-2)*m+j-3]+stopS2+gap_frame) {
-				score = score < F[(i-2)*m+j-3]+stopS2+gap_frame;
+			if (i > 1 && j > 2 && score < F[(i-2)*size+j-3]+stopS2+gap_frame) {
+				score = score < F[(i-2)*size+j-3]+stopS2+gap_frame;
 				way = 10;
 			}
-			if (j > 2 && score < F[(i-1)*m + j-3] + stopS2 + gap_frame) {
-				score = F[(i-1)*m+j-3]+stopS2+gap_frame;
+			if (j > 2 && score < F[(i-1)*size + j-3] + stopS2 + gap_frame) {
+				score = F[(i-1)*size+j-3]+stopS2+gap_frame;
 				way = 11;
 			}
 			// NT gap
-			tmp = F[i*m+j-1] + gap_extension + gap_frame;
-			if (W[i*m+j-1] > 6) tmp += gap_open;
+			tmp = F[i*size+j-1] + gap_extension + gap_frame;
+			if (W[i*size+j-1] > 6) tmp += gap_open;
 			if (score < tmp) {
 				score = tmp;
 				way = 3;
 			}
 			if (j > 1) {
-				tmp = F[i*m+j-2] + gap_extension + gap_frame;
-				if (W[i*m+j-2] > 6) tmp += gap_open;
+				tmp = F[i*size+j-2] + gap_extension + gap_frame;
+				if (W[i*size+j-2] > 6) tmp += gap_open;
 				if (score < tmp) {
 					score = tmp;
 					way = 4;
 				}
 			}
-			tmp = F[(i-1)*m+j] + gap_extension + gap_frame;
-			if (W[(i-1)*m+j] > 6) tmp += gap_open;
+			tmp = F[(i-1)*size+j] + gap_extension + gap_frame;
+			if (W[(i-1)*size+j] > 6) tmp += gap_open;
 			if (score < tmp) {
 				score = tmp;
 				way = 5;
 			}
 			if (i > 1) {
-				tmp = F[(i-2)*m+j] + gap_extension + gap_frame;
-				if (W[(i-2)*m+j] > 6) tmp += gap_open;
+				tmp = F[(i-2)*size+j] + gap_extension + gap_frame;
+				if (W[(i-2)*size+j] > 6) tmp += gap_open;
 				if (score < tmp) {
 					score = tmp;
 					way = 6;
 				}
 			}
 			// save the best variant
-			F[i*m+j] = score;
-			W[i*m+j] = way;
+			F[i*size+j] = score;
+			W[i*size+j] = way;\
 		}
 	}
 	// searching the best score
-	int result_score = F[n*m-1];
+	int result_score = F[n*size-1];
 	int i = n-1, j = m-1;
 	// ...search in last line
 	for (int index = 0; index < m-1; index++) 
-		if (F[(n-1)*m+index] > result_score) {
+		if (F[(n-1)*size+index] > result_score) {
 			j = index;
-			result_score = F[(n-1)*m+index];
+			result_score = F[(n-1)*size+index];
 		}
 	// ...search in last column
 	for (int index = 0; index < n-1; index++) 
-		if (F[index*m + m-1] > result_score) {
+		if (F[index*size + m-1] > result_score) {
 			i = index; 
 			j = m-1;
-			result_score = F[index*m + m-1];
+			result_score = F[index*size + m-1];
 		}
 	// i, j - point of best score
-	return F[i*m + j];
+	return F[i*size + j];
 }

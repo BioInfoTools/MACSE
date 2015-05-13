@@ -5,6 +5,14 @@
 
 #define MAXINT 0x7FFFFFFF
 
+#define DEBUG
+
+#ifdef DEBUG
+	#include <iostream>
+	using std::cout;
+	using std::endl;
+#endif
+
 // global tables for merge profiles
 // memory allocation in Profile::operator +
 // free in UPGMAfree
@@ -23,6 +31,8 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	for (unsigned int i = 0; i < sequences.size(); i++) {
 		// at first each sequence is a single cluster
 		profiles[i].sequences.push_back(sequences[i]);
+		profiles[i].nt_score_matrix = aligner.GetNTscoreMatrix();
+		profiles[i].aa_score_matrix = aligner.GetAAscoreMatrix();
 		// calculating distances between other sequences
 		for (unsigned int j = 0; j < i; j++) {
 			matrix[i*sequences.size() + j] = aligner.Align(sequences[i],sequences[j]);
@@ -34,6 +44,20 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 			}
 		}
 	}
+	
+#ifdef DEBUG
+	cout << "Building UPGMA matrix done!" << endl;
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		for (unsigned int j = 0; j < i; j++) {
+			cout << matrix[i*sequences.size() + j] << '\t';
+		}
+		cout << '.' << endl;
+	}
+	cout << "start point:" << endl;
+	cout << "max_i = " << max_i << endl;
+	cout << "max_j = " << max_j << endl;
+#endif
+
 	parameters[0] = aligner.GetGapOpen();
 	parameters[1] = aligner.GetGapExtension();
 	parameters[2] = aligner.GetGapFrame();
@@ -43,6 +67,9 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	memset(corpse, false, sizeof(bool)*sequences.size()); // everybody is alive
 	while (alive > 1) {
 		// collapse i and j
+#ifdef DEBUG
+		cout << "collapse " << max_i << " and " << max_j << endl;
+#endif
 		profiles[max_i] = profiles[max_i] + profiles[max_j];
 		corpse[max_j] = true; // killing max_j
 		alive--;
@@ -106,21 +133,26 @@ Profile& Profile :: operator + (Profile& another) {
 	}
 	// reallocate memory (if necessary)
 	int new_size = 1;
-	int dim1 = sequences[0]->Length(), dim2 = another.sequences[0]->Length();
-	while (dim1 + 1 > new_size || dim2 + 1 > new_size) {
+	int dim1 = sequences[0]->Length()+1, dim2 = another.sequences[0]->Length()+1;
+	while (dim1 > new_size || dim2 > new_size) {
 		new_size *= 2;
 	}
 	if (new_size > dim) {
 		UPGMAfree();
+		dim = new_size;
 		best_mvt = new unsigned int[dim*dim];
 		scores = new float[dim*dim];
-		dim = new_size;
 	}
 	// initialization
-	memset(best_mvt, 0xFF, sizeof(int)*dim*dim);
+	memset(best_mvt, 0xFF, sizeof(unsigned int)*dim*dim);
 	memset(scores, 0, sizeof(float)*dim*dim);
 	// calculating new profile
 	//  * fill score matrix
+#ifdef DEBUG
+	cout << "seq1 size: " << dim1 << endl;
+	cout << "seq2 size: " << dim2 << endl;
+	cout << "allocated matrix: " << dim << 'x' << dim << endl;
+#endif
 	for (int i = 1; i < dim1; i++) {
 		for (int j = 1; j < dim2; j++) {
 			/* 25 possible moves
@@ -377,7 +409,156 @@ Profile& Profile :: operator + (Profile& another) {
 		}
 	}
 	//  * update sequences
-	
+	// searching the best score
+	int result_score = scores[dim1*dim2-1];
+	int i = dim1-1, j = dim2-1;
+	// ...search in last line
+	for (int index = 0; index < dim2-1; index++) 
+		if (scores[(dim1-1)*dim+index] > result_score) {
+			j = index;
+			result_score = scores[(dim-1)*dim2+index];
+		}
+	// ...search in last column
+	for (int index = 0; index < dim1-1; index++) 
+		if (scores[index*dim + dim2-1] > result_score) {
+			i = index; 
+			j = dim2-1;
+			result_score = scores[index*dim + dim2-1];
+		}
+	// i, j - point of best score
+	// updating sequences
+	this->InsertGap(dim1-1, dim2-1-j); // insert gaps in Profile 1
+	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
+	while (i || j) {
+		switch (best_mvt[i*dim + j]) {
+			case 1:
+				another.InsertGap(j);
+				i--;
+				break;
+			case 2:
+				another.InsertGap(j);
+				i -= 2;
+				j--;
+				break;
+			case 3:
+				another.InsertGap(j, 2);
+				i -= 2;
+				break;
+			case 4:
+				another.InsertGap(j);
+				i -= 3;
+				j -= 2;
+				break;
+			case 5:
+				another.InsertGap(j);
+				j--;
+				another.InsertGap(j);
+				i -= 3;
+				break;
+			case 6:
+				another.InsertGap(j, 2);
+				i -= 3;
+				j--;
+				break;
+			case 7:
+				another.InsertGap(j, 3);
+				i -= 3;
+				break;
+			case 8:
+				InsertGap(i);
+				j--;
+				break;
+			case 9:
+				InsertGap(i);
+				i--;
+				j -= 2;
+				break;
+			case 10:
+				InsertGap(i, 2);
+				j -= 2;
+				break;
+			case 11:
+				InsertGap(i);
+				i -= 2;
+				j -= 3;
+				break;
+			case 12:
+				InsertGap(i);
+				i--;
+				InsertGap(i);
+				j -= 3;
+				break;
+			case 13:
+				InsertGap(i, 2);
+				i--;
+				j -= 3;
+				break;
+			case 14:
+				InsertGap(i, 3);
+				j -= 3;
+				break;
+			case 15:
+				i--;
+				j--;
+				break;
+			case 16:
+				i -= 2;
+				j -= 2;
+				break;
+			case 17:
+				i -= 2;
+				j--;
+				another.InsertGap(j);
+				break;
+			case 18:
+				i--;
+				InsertGap(i);
+				j -= 2;
+				break;
+			case 19:
+				i -= 3;
+				j -= 3;
+				break;
+			case 20:
+				i -= 3;
+				j -= 2;
+				another.InsertGap(j);
+				break;
+			case 21:
+				i -= 2;
+				InsertGap(i);
+				j -= 3;
+				break;
+			case 22:
+				i -= 3;
+				j--;
+				another.InsertGap(j);
+				j--;
+				break;
+			case 23:
+				i -= 3;
+				j--;
+				another.InsertGap(j, 2);
+				break;
+			case 24:
+				i--;
+				InsertGap(i);
+				i--;
+				j -= 3;
+				break;
+			case 25:
+				i--;
+				InsertGap(i, 2);
+				j -= 3;
+				break;
+			default:
+				// some problems
+				// return NULL; // DEBUG
+				return *this;
+		}
+	}
+	InsertGap(0, j);
+	another.InsertGap(0, i);
 	return *this;
 }
 

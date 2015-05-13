@@ -9,7 +9,7 @@ struct BioSeq {
 	std::string name;
 	std::string nt_seq;
 	// constructor
-	BioSeq(std::string s, std::string n): name(n), nt_seq(s) { }
+	BioSeq(std::string n, std::string s): name(n), nt_seq(s) { }
 	// destructor
 	~BioSeq() { }
 	// accessors
