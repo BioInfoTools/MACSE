@@ -8,7 +8,7 @@
 
 PairwiseAlign :: PairwiseAlign(const char* nt_score_matrix, 
 			const char* aa_score_matrix, int stop_cost, int gap_open, 
-			int gap_extension, int frame_gap) {
+			int gap_extension, int gap_frame) {
 	this->gap_open = gap_open;
 	this->gap_extension = gap_extension;
 	this->gap_frame = gap_frame;

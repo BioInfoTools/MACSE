@@ -31,7 +31,8 @@ struct Profile {
 	float ColumnNTscore(Profile& another, int index1, int index2);
 	float ColumnAAscore(Profile& another, int index1, int index2);
 	// fill an array of frequency
-	void CalcFrequencies(int position);
+	void CalcFrequenciesNT(int position);
+	void CalcFrequenciesAA(int position);
 	// insert gaps in sequences
 	void InsertGap(int pos, int count) {
 		for_each(sequences.begin(), sequences.end(), [pos, count] (BioSeq* s) {

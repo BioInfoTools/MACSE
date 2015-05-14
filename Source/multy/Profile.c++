@@ -94,6 +94,19 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 				matrix[max_i*sequences.size()+k] /= 2;
 			}
 		}
+		
+#ifdef DEBUG
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		if (corpse[i]) continue;
+		for (unsigned int j = 0; j < i; j++) {
+			if (corpse[j]) continue;
+			cout << matrix[i*sequences.size() + j] << '\t';
+		}
+		cout << '.' << endl;
+	}
+	cout << endl;
+#endif
+		
 		// searching new max
 		max = -MAXINT;
 		for (unsigned int i = 0; i < sequences.size(); i++) {
@@ -265,13 +278,16 @@ Profile& Profile :: operator + (Profile& another) {
 			}
 			score += parameters[2] * 2;
 			// AA align
-			if (i - 3 >= 0 && j - 3 >= 0) {
+			if (i - 3 >= 0 && j - 3 >= 0) { 
+#ifdef DEBUG
+cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(another, i-3,j-3) << ' ' << ColumnNTscore(another, i-3,j-3) << ' ' << ColumnNTscore(another, i-2,j-2) << ' ' << ColumnNTscore(another, i-1,j-1) << endl;
+#endif
 				if (score < ColumnAAscore(another, i-3,j-3) 
 					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
-					+ ColumnNTscore(another, i-1, j-1)) {
+					+ ColumnNTscore(another, i-1, j-1) + scores[(i-3)*dim+j-3]) {
 					score = ColumnAAscore(another, i-3,j-3) 
 					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
-					+ ColumnNTscore(another, i-1, j-1);
+					+ ColumnNTscore(another, i-1, j-1)  + scores[(i-3)*dim+j-3];
 					way = 19;
 				}
 			}
@@ -410,7 +426,7 @@ Profile& Profile :: operator + (Profile& another) {
 	}
 	//  * update sequences
 	// searching the best score
-	int result_score = scores[dim1*dim2-1];
+	int result_score = scores[(dim1-1)*dim+dim2-1];
 	int i = dim1-1, j = dim2-1;
 	// ...search in last line
 	for (int index = 0; index < dim2-1; index++) 
@@ -429,6 +445,26 @@ Profile& Profile :: operator + (Profile& another) {
 	// updating sequences
 	this->InsertGap(dim1-1, dim2-1-j); // insert gaps in Profile 1
 	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
+	
+#ifdef DEBUG
+	for (int i = 0; i < dim; i++) {
+		for (int j = 0; j < dim; j++) {
+			cout << best_mvt[i*dim+j] << '\t';
+		}
+		cout << endl;
+	}
+	cout << endl << endl;
+	for (int i = 0; i < dim; i++) {
+		for (int j = 0; j < dim; j++) {
+			cout << scores[i*dim+j] << '\t';
+		}
+		cout << endl;
+	}
+	cout << endl;
+#endif
+
+	
+	
 	while (i && j) {
 		switch (best_mvt[i*dim + j]) {
 			case 1:
@@ -565,8 +601,8 @@ Profile& Profile :: operator + (Profile& another) {
 float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
 	float score = 0;
 	float denominator = sequences.size() + another.sequences.size();
-	CalcFrequencies(index1); 
-	another.CalcFrequencies(index2);
+	CalcFrequenciesNT(index1); 
+	another.CalcFrequenciesNT(index2);
 	for (unsigned int i = 0; i < sequences.size(); i++) {
 		unsigned char char1 = sequences[i]->nt_seq[index1];
 		if (char1 == '-') continue;
@@ -583,8 +619,8 @@ float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
 float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
 	float score = 0;
 	float denominator = sequences.size() + another.sequences.size();
-	CalcFrequencies(index1); 
-	another.CalcFrequencies(index2);
+	CalcFrequenciesAA(index1); 
+	another.CalcFrequenciesAA(index2);
 	for (unsigned int i = 0; i < sequences.size(); i++) {
 		unsigned char char1 = sequences[i]->TranslateNTtoAA(index1);
 		if (char1 == '-' || char1 == '!' || char1 == '*') continue;
@@ -602,7 +638,15 @@ float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
 	return score + addition1 + addition2;
 }
 
-void Profile :: CalcFrequencies(int position) {
+void Profile :: CalcFrequenciesAA(int position) {
+	memset(frequency, 0, sizeof(int)*128);
+	for_each(sequences.begin(), sequences.end(), 
+		[&](BioSeq* s) { 
+			frequency[(unsigned char)s->TranslateNTtoAA(position)]++; 
+		} );
+}
+
+void Profile :: CalcFrequenciesNT(int position) {
 	memset(frequency, 0, sizeof(int)*128);
 	for_each(sequences.begin(), sequences.end(), 
 		[&](BioSeq* s) { 
