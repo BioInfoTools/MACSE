@@ -429,7 +429,7 @@ Profile& Profile :: operator + (Profile& another) {
 	// updating sequences
 	this->InsertGap(dim1-1, dim2-1-j); // insert gaps in Profile 1
 	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
-	while (i || j) {
+	while (i && j) {
 		switch (best_mvt[i*dim + j]) {
 			case 1:
 				another.InsertGap(j);

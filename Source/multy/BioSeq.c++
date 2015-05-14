@@ -5,10 +5,14 @@
 std::string BioSeq :: GetAAseq() {
 	std::string result = "";
 	for (unsigned int i = 0; i+2 < nt_seq.length(); i += 3) {
-		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') 
+		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') {
 			result += '-';
-		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') 
+			continue;
+		}
+		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') {
 			result += '!';
+			continue;
+		}
 		switch (nt_seq[i]) {
 			case 'A':
 				switch (nt_seq[i+1]) {
@@ -134,10 +138,14 @@ std::string BioSeq :: GetAAseq() {
 
 void BioSeq :: PrintAA(std::ostream& out) {
 	for (unsigned int i = 0; i+2 < nt_seq.length(); i += 3) {
-		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') 
+		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') {
 			out << '-';
-		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') 
+			continue;
+		}
+		else if (nt_seq[i] == '-' || nt_seq[i+1] == '-' || nt_seq[i+2] == '-') {
 			out << '!';
+			continue;
+		}
 		switch (nt_seq[i]) {
 			case 'A':
 				switch (nt_seq[i+1]) {
