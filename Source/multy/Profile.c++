@@ -24,34 +24,37 @@ int dim = 0;
 int parameters[4]; 
 
 void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
-	int* matrix = new int[sequences.size() * sequences.size()];
-	Profile* profiles = new Profile[sequences.size()];
-	int max = -MAXINT;
+	unsigned int n = sequences.size();
+	double* matrix = new double[n * n];
+	Profile* profiles = new Profile[n];
+	double max = -((int)MAXINT);
 	unsigned int max_i, max_j;
-	for (unsigned int i = 0; i < sequences.size(); i++) {
+	for (unsigned int i = 0; i < n; i++) {
 		// at first each sequence is a single cluster
 		profiles[i].sequences.push_back(sequences[i]);
 		profiles[i].nt_score_matrix = aligner.GetNTscoreMatrix();
 		profiles[i].aa_score_matrix = aligner.GetAAscoreMatrix();
 		// calculating distances between other sequences
 		for (unsigned int j = 0; j < i; j++) {
-			matrix[i*sequences.size() + j] = aligner.Align(sequences[i],sequences[j]);
+			matrix[i*n + j] = aligner.Align(sequences[i],sequences[j]);
 			// searching max score
-			if (matrix[i*sequences.size() + j] > max) {
-				max = matrix[i*sequences.size() + j];
+			if (matrix[i*n + j] > max) {
+				max = matrix[i*n + j];
 				max_i = i;
 				max_j = j;
 			}
 		}
+		// in [i, i] position stores the count of components in cluster
+		matrix[i*n + i] = 1; 
 	}
 	
 #ifdef DEBUG
 	cout << "Building UPGMA matrix done!" << endl;
-	for (unsigned int i = 0; i < sequences.size(); i++) {
-		for (unsigned int j = 0; j < i; j++) {
-			cout << matrix[i*sequences.size() + j] << '\t';
+	for (unsigned int i = 0; i < n; i++) {
+		for (unsigned int j = 0; j <= i; j++) {
+			cout << matrix[i*n + j] << '\t';
 		}
-		cout << '.' << endl;
+		cout << endl;
 	}
 	cout << "start point:" << endl;
 	cout << "max_i = " << max_i << endl;
@@ -62,59 +65,66 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	parameters[1] = aligner.GetGapExtension();
 	parameters[2] = aligner.GetGapFrame();
 	parameters[3] = aligner.GetStopCost();
-	int alive = sequences.size();
-	bool* corpse = new bool[sequences.size()];
-	memset(corpse, false, sizeof(bool)*sequences.size()); // everybody is alive
+	int alive = n;
+	bool* corpse = new bool[n];
+	memset(corpse, false, sizeof(bool)*n); // everybody is alive
 	while (alive > 1) {
 		// collapse i and j
+		
 #ifdef DEBUG
 		cout << "collapse " << max_i << " and " << max_j << endl;
 #endif
+		
 		profiles[max_i] = profiles[max_i] + profiles[max_j];
-		corpse[max_j] = true; // killing max_j
+		// change the components count for max_i cluster
+		matrix[max_i*n+max_i]+=matrix[max_j*n+max_j];
+		// killing max_j
+		corpse[max_j] = true; 
 		alive--;
 		// updating distances
 		// ...in max_i column
-		for (unsigned int k = max_i + 1; k < sequences.size(); k++) {
+		for (unsigned int k = max_i + 1; k < n; k++) {
 			if (!corpse[k]) {
+				matrix[k*n+max_i] *= matrix[max_i*(n+1)];
 				if (k > max_j)
-					matrix[k*sequences.size()+max_i] += matrix[k*sequences.size()+max_j];
+					matrix[k*n+max_i] += matrix[k*n+max_j] * matrix[max_j*(n+1)];
 				else 
-					matrix[k*sequences.size()+max_i] += matrix[max_j*sequences.size()+k];
-				matrix[k*sequences.size()+max_i] /= 2;
-			}	
+					matrix[k*n+max_i] += matrix[max_j*n+k] * matrix[max_j*(n+1)];
+				matrix[k*n+max_i] /= (matrix[max_i*(n+1)] + matrix[max_j*(n+1)]);
+			}
 		}
 		// ...in max_i row
 		for (unsigned int k = 0; k < max_i; k++) {
 			if (!corpse[k]) {
+				matrix[max_i*n+k] *= matrix[max_i*(n+1)];
 				if (k > max_j)
-					matrix[max_i*sequences.size()+k] += matrix[k*sequences.size()+max_j];
+					matrix[max_i*n+k] += matrix[k*n+max_j] * matrix[max_j*(n+1)];
 				else 
-					matrix[max_i*sequences.size()+k] += matrix[max_j*sequences.size()+k];
-				matrix[max_i*sequences.size()+k] /= 2;
+					matrix[max_i*n+k] += matrix[max_j*n+k] * matrix[max_j*(n+1)];
+				matrix[max_i*n+k] /= (matrix[max_i*(n+1)] + matrix[max_j*(n+1)]);
 			}
 		}
 		
 #ifdef DEBUG
-	for (unsigned int i = 0; i < sequences.size(); i++) {
-		if (corpse[i]) continue;
-		for (unsigned int j = 0; j < i; j++) {
-			if (corpse[j]) continue;
-			cout << matrix[i*sequences.size() + j] << '\t';
+	cout << endl << "UPGMA table:" << endl;
+	for (unsigned int i = 0; i < n; i++) {
+		cout << i << ":\t";
+		for (unsigned int j = 0; j <= i; j++) {
+			if (corpse[i] || corpse[j]) cout << "#\t";
+			else cout << matrix[i*n + j] << '\t';
 		}
-		cout << '.' << endl;
+		cout << endl;
 	}
-	cout << endl;
 #endif
 		
 		// searching new max
 		max = -MAXINT;
-		for (unsigned int i = 0; i < sequences.size(); i++) {
+		for (unsigned int i = 0; i < n; i++) {
 			if (corpse[i]) continue;
 			for (unsigned int j = 0; j < i; j++) {
 				if (corpse[j]) continue;
-				if (matrix[i*sequences.size() + j] > max) {
-					max = matrix[i*sequences.size() + j];
+				if (matrix[i*n + j] > max) {
+					max = matrix[i*n + j];
 					max_i = i;
 					max_j = j;
 				}
@@ -161,11 +171,13 @@ Profile& Profile :: operator + (Profile& another) {
 	memset(scores, 0, sizeof(float)*dim*dim);
 	// calculating new profile
 	//  * fill score matrix
+	
 #ifdef DEBUG
-	cout << "seq1 size: " << dim1 << endl;
-	cout << "seq2 size: " << dim2 << endl;
+	cout << "seq1 size: " << dim1-1 << endl;
+	cout << "seq2 size: " << dim2-1 << endl;
 	cout << "allocated matrix: " << dim << 'x' << dim << endl;
 #endif
+	
 	for (int i = 1; i < dim1; i++) {
 		for (int j = 1; j < dim2; j++) {
 			/* 25 possible moves
@@ -206,9 +218,9 @@ Profile& Profile :: operator + (Profile& another) {
 			}
 			if (i - 2 >= 0 && j - 2 >= 0) {
 				if (score < ColumnNTscore(another, i-1, j-1) 
-					+ ColumnNTscore(another, i-2, j-2)) {
+					+ ColumnNTscore(another, i-2, j-2) + scores[(i-2)*dim+j-2]) {
 					score = ColumnNTscore(another, i-1, j-1) 
-						+ ColumnNTscore(another, i-2, j-2);
+						+ ColumnNTscore(another, i-2, j-2) + scores[(i-2)*dim+j-2];
 					way = 16;
 				}
 			}
@@ -279,9 +291,6 @@ Profile& Profile :: operator + (Profile& another) {
 			score += parameters[2] * 2;
 			// AA align
 			if (i - 3 >= 0 && j - 3 >= 0) { 
-#ifdef DEBUG
-cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(another, i-3,j-3) << ' ' << ColumnNTscore(another, i-3,j-3) << ' ' << ColumnNTscore(another, i-2,j-2) << ' ' << ColumnNTscore(another, i-1,j-1) << endl;
-#endif
 				if (score < ColumnAAscore(another, i-3,j-3) 
 					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
 					+ ColumnNTscore(another, i-1, j-1) + scores[(i-3)*dim+j-3]) {
@@ -354,7 +363,6 @@ cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(anot
 					}
 				}
 			}
-			//
 			if (i - 2 >= 0 && j - 3 >= 0) {
 				if (best_mvt[(i-2)*dim+j-3] > 7 && best_mvt[(i-2)*dim+j-3] < 15) {
 					if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
@@ -447,38 +455,43 @@ cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(anot
 	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
 	
 #ifdef DEBUG
-	for (int i = 0; i < dim; i++) {
-		for (int j = 0; j < dim; j++) {
+	for (int i = 0; i < dim1; i++) {
+		for (int j = 0; j < dim2; j++) {
 			cout << best_mvt[i*dim+j] << '\t';
 		}
 		cout << endl;
 	}
 	cout << endl << endl;
-	for (int i = 0; i < dim; i++) {
-		for (int j = 0; j < dim; j++) {
+	for (int i = 0; i < dim1; i++) {
+		for (int j = 0; j < dim2; j++) {
 			cout << scores[i*dim+j] << '\t';
 		}
 		cout << endl;
 	}
-	cout << endl;
+	cout << endl << "(max) " << i << " - " << j << ' ' << result_score << endl;
 #endif
-
-	
 	
 	while (i && j) {
 		switch (best_mvt[i*dim + j]) {
 			case 1:
-				another.InsertGap(j);
+				another.InsertGap(j, 3); 
 				i--;
+				// save frame
+				InsertGap(i, 2);
 				break;
 			case 2:
 				another.InsertGap(j);
 				i -= 2;
 				j--;
+				// save frame
+				InsertGap(i);
+				another.InsertGap(j);
 				break;
 			case 3:
-				another.InsertGap(j, 2);
+				another.InsertGap(j, 3);
 				i -= 2;
+				// save frame
+				InsertGap(i);
 				break;
 			case 4:
 				another.InsertGap(j);
@@ -501,17 +514,24 @@ cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(anot
 				i -= 3;
 				break;
 			case 8:
-				InsertGap(i);
+				InsertGap(i, 3);
 				j--;
+				// save frame
+				another.InsertGap(j, 2);
 				break;
 			case 9:
 				InsertGap(i);
 				i--;
 				j -= 2;
+				// save frame
+				InsertGap(i);
+				another.InsertGap(j);
 				break;
 			case 10:
-				InsertGap(i, 2);
+				InsertGap(i, 3);
 				j -= 2;
+				// save frame
+				another.InsertGap(j);
 				break;
 			case 11:
 				InsertGap(i);
@@ -536,20 +556,30 @@ cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(anot
 			case 15:
 				i--;
 				j--;
+				// save frame
+				InsertGap(i, 2);
+				another.InsertGap(j, 2);
 				break;
 			case 16:
 				i -= 2;
 				j -= 2;
+				// save frame
+				InsertGap(i);
+				another.InsertGap(j);
 				break;
 			case 17:
 				i -= 2;
 				j--;
-				another.InsertGap(j);
+				// save frame
+				InsertGap(i);
+				another.InsertGap(j, 2);
 				break;
 			case 18:
 				i--;
-				InsertGap(i);
 				j -= 2;
+				// save frame
+				InsertGap(i, 2);
+				another.InsertGap(j);
 				break;
 			case 19:
 				i -= 3;
@@ -595,6 +625,18 @@ cout << i << ' ' << j << ' ' << score << ' ' << way << ' ' << ColumnAAscore(anot
 	}
 	InsertGap(0, j);
 	another.InsertGap(0, i);
+	// add sequences from Profile2 to Profile1
+	for_each(another.sequences.begin(), another.sequences.end(), [&](BioSeq* s) {
+		sequences.push_back(s);
+	});
+	
+#ifdef DEBUG
+	for_each(sequences.begin(), sequences.end(), [](BioSeq* s) {
+		s->PrintNT(cout);
+	});
+#endif
+	
+	// return new Profile
 	return *this;
 }
 
