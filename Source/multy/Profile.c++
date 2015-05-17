@@ -5,7 +5,7 @@
 
 #define MAXINT 0x7FFFFFFF
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 	#include <iostream>
@@ -123,7 +123,10 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 			if (corpse[i]) continue;
 			for (unsigned int j = 0; j < i; j++) {
 				if (corpse[j]) continue;
-				if (matrix[i*n + j] > max) {
+				if ((matrix[i*n+j] > max) ||
+						(matrix[i*n+j] == max && (matrix[i*n+i] > matrix[max_i*n+max_i]))) {
+					// if max distances are equal
+					// choose Profile with maximum sequences number
 					max = matrix[i*n + j];
 					max_i = i;
 					max_j = j;
@@ -288,18 +291,9 @@ Profile& Profile :: operator + (Profile& another) {
 					way = 10;
 				} 
 			}
-			score += parameters[2] * 2;
+			score += parameters[2]; // and one more addition after AA check
 			// AA align
-			if (i - 3 >= 0 && j - 3 >= 0) { 
-				if (score < ColumnAAscore(another, i-3,j-3) 
-					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
-					+ ColumnNTscore(another, i-1, j-1) + scores[(i-3)*dim+j-3]) {
-					score = ColumnAAscore(another, i-3,j-3) 
-					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
-					+ ColumnNTscore(another, i-1, j-1)  + scores[(i-3)*dim+j-3];
-					way = 19;
-				}
-			}
+			// with frame shift
 			if (i - 3 >= 0 && j - 2 >= 0) {
 				if (best_mvt[(i-3)*dim+j-2] < 8) {
 					if (score < scores[(i-3)*dim+j-2] + ColumnNTscore(another, i-2, j-2) 
@@ -427,6 +421,18 @@ Profile& Profile :: operator + (Profile& another) {
 					}
 				}
 			}
+			score += parameters[2];
+			// AA match
+			if (i - 3 >= 0 && j - 3 >= 0) { 
+				if (score < ColumnAAscore(another, i-3,j-3) 
+					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
+					+ ColumnNTscore(another, i-1, j-1) + scores[(i-3)*dim+j-3]) {
+					score = ColumnAAscore(another, i-3,j-3) 
+					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
+					+ ColumnNTscore(another, i-1, j-1)  + scores[(i-3)*dim+j-3];
+					way = 19;
+				}
+			}
 			// score & way contain best option
 			scores[i*dim+j] = score;
 			best_mvt[i*dim+j] = way;
@@ -455,6 +461,10 @@ Profile& Profile :: operator + (Profile& another) {
 	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
 	
 #ifdef DEBUG
+	for (int j = 0; j < dim2; j++) { // print indexes
+		cout << j << '\t';
+	}
+	cout << endl;
 	for (int i = 0; i < dim1; i++) {
 		for (int j = 0; j < dim2; j++) {
 			cout << best_mvt[i*dim+j] << '\t';
@@ -641,6 +651,7 @@ Profile& Profile :: operator + (Profile& another) {
 }
 
 float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
+	int steps = 0;
 	float score = 0;
 	float denominator = sequences.size() + another.sequences.size();
 	CalcFrequenciesNT(index1); 
@@ -653,12 +664,15 @@ float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
 			if (char2 == '-') continue;
 			float numerator = frequency[char1]+another.frequency[char2];
 			score += nt_score_matrix[char1*128+char2]*(numerator/denominator);
+			steps++;
 		}
 	}
-	return score;
+	if (steps) return score / steps;
+	return 0;
 }
 
 float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
+	int steps = 0;
 	float score = 0;
 	float denominator = sequences.size() + another.sequences.size();
 	CalcFrequenciesAA(index1); 
@@ -677,7 +691,8 @@ float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
 	addition1 *= parameters[2]; // gap frame
 	float addition2 = 2 * (frequency['*'] + another.frequency['*']) / denominator;
 	addition2 *= parameters[3]; // stop cost
-	return score + addition1 + addition2;
+	if (steps) return score / steps + addition1 + addition2;
+	return addition1 + addition2;
 }
 
 void Profile :: CalcFrequenciesAA(int position) {
