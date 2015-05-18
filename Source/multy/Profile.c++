@@ -28,7 +28,7 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	double* matrix = new double[n * n];
 	Profile* profiles = new Profile[n];
 	double max = -((int)MAXINT);
-	unsigned int max_i, max_j;
+	unsigned int max_i = 0, max_j = 0;
 	for (unsigned int i = 0; i < n; i++) {
 		// at first each sequence is a single cluster
 		profiles[i].sequences.push_back(sequences[i]);
@@ -134,6 +134,7 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 			}
 		}
 	}
+	delete[] corpse;
 	delete[] matrix;
 	delete[] profiles;
 	// comment next line if you want to use UPGMA again for other sequences
@@ -375,13 +376,13 @@ Profile& Profile :: operator + (Profile& another) {
 				}
 				if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
 					+ ColumnNTscore(another,i-1, j-1) + parameters[0]) {
-					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-3, j-2) 
+					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
 					+ ColumnNTscore(another,i-1, j-1) + parameters[0];
 					way = 24;
 				}
 				if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
 					+ ColumnNTscore(another,i-1, j-2) + parameters[0]) {
-					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-3, j-2) 
+					score = scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-3) 
 					+ ColumnNTscore(another,i-2, j-1) + parameters[0];
 					way = 11;
 				}
