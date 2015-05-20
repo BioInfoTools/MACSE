@@ -5,7 +5,10 @@
 
 #define MAXINT 0x7FFFFFFF
 
+// debug flags
+// compile program with -DDEBUG and -DPRINT_MATRIX to obtain debug info
 //#define DEBUG
+//#define PRINT_MATRIX
 
 #ifdef DEBUG
 	#include <iostream>
@@ -104,19 +107,6 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 				matrix[max_i*n+k] /= (matrix[max_i*(n+1)] + matrix[max_j*(n+1)]);
 			}
 		}
-		
-#ifdef DEBUG
-	cout << endl << "UPGMA table:" << endl;
-	for (unsigned int i = 0; i < n; i++) {
-		cout << i << ":\t";
-		for (unsigned int j = 0; j <= i; j++) {
-			if (corpse[i] || corpse[j]) cout << "#\t";
-			else cout << matrix[i*n + j] << '\t';
-		}
-		cout << endl;
-	}
-#endif
-		
 		// searching new max
 		max = -MAXINT;
 		for (unsigned int i = 0; i < n; i++) {
@@ -345,19 +335,6 @@ Profile& Profile :: operator + (Profile& another) {
 					way = 6;
 				}
 			}
-			if (i - 3 >= 0) {
-				if (best_mvt[(i-3)*dim+j-1] < 8) {
-					if (score < scores[(i-3)*dim+j] + parameters[1] * 3) {
-						score = scores[(i-3)*dim+j] + parameters[1] * 3;
-						way = 7;
-					}
-				} else {
-					if (score < scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0]) {
-						score = scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0];
-						way = 7;
-					}
-				}
-			}
 			if (i - 2 >= 0 && j - 3 >= 0) {
 				if (best_mvt[(i-2)*dim+j-3] > 7 && best_mvt[(i-2)*dim+j-3] < 15) {
 					if (score < scores[(i-2)*dim+j-3] + ColumnNTscore(another,i-2, j-2) 
@@ -409,6 +386,21 @@ Profile& Profile :: operator + (Profile& another) {
 					way = 13;
 				}
 			}
+			score += parameters[2];
+			// AA match
+			if (i - 3 >= 0) {
+				if (best_mvt[(i-3)*dim+j-1] < 8) {
+					if (score < scores[(i-3)*dim+j] + parameters[1] * 3) {
+						score = scores[(i-3)*dim+j] + parameters[1] * 3;
+						way = 7;
+					}
+				} else {
+					if (score < scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0]) {
+						score = scores[(i-3)*dim+j] + parameters[1] * 2 + parameters[0];
+						way = 7;
+					}
+				}
+			}
 			if (j - 3 >= 0) {
 				if (best_mvt[i*dim+j-3] > 7 && best_mvt[i*dim+j-3] < 15) {
 					if (score < scores[i*dim+j-3] + parameters[1] * 3) {
@@ -422,8 +414,6 @@ Profile& Profile :: operator + (Profile& another) {
 					}
 				}
 			}
-			score += parameters[2];
-			// AA match
 			if (i - 3 >= 0 && j - 3 >= 0) { 
 				if (score < ColumnAAscore(another, i-3,j-3) 
 					+ ColumnNTscore(another, i-3,j-3) + ColumnNTscore(another, i-2,j-2) 
@@ -441,13 +431,13 @@ Profile& Profile :: operator + (Profile& another) {
 	}
 	//  * update sequences
 	// searching the best score
-	int result_score = scores[(dim1-1)*dim+dim2-1];
+	float result_score = scores[(dim1-1)*dim+dim2-1];
 	int i = dim1-1, j = dim2-1;
 	// ...search in last line
 	for (int index = 0; index < dim2-1; index++) 
 		if (scores[(dim1-1)*dim+index] > result_score) {
 			j = index;
-			result_score = scores[(dim-1)*dim2+index];
+			result_score = scores[(dim1-1)*dim+index];
 		}
 	// ...search in last column
 	for (int index = 0; index < dim1-1; index++) 
@@ -461,7 +451,7 @@ Profile& Profile :: operator + (Profile& another) {
 	this->InsertGap(dim1-1, dim2-1-j); // insert gaps in Profile 1
 	another.InsertGap(dim2-1, dim1-1-i); // insert gaps in Profile 2
 	
-#ifdef DEBUG
+#ifdef PRINT_MATRIX
 	for (int j = 0; j < dim2; j++) { // print indexes
 		cout << j << '\t';
 	}
@@ -480,7 +470,7 @@ Profile& Profile :: operator + (Profile& another) {
 		cout << endl;
 	}
 	cout << endl << "(max) " << i << " - " << j << ' ' << result_score << endl;
-#endif
+#endif 
 	
 	while (i && j) {
 		switch (best_mvt[i*dim + j]) {
@@ -645,6 +635,7 @@ Profile& Profile :: operator + (Profile& another) {
 	for_each(sequences.begin(), sequences.end(), [](BioSeq* s) {
 		s->PrintNT(cout);
 	});
+	cout << endl;
 #endif
 	
 	// return new Profile
@@ -663,13 +654,16 @@ float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
 		for (unsigned int j = 0; j < another.sequences.size(); j++) {
 			unsigned char char2 = another.sequences[j]->nt_seq[index2];
 			if (char2 == '-') continue;
-			float numerator = frequency[char1]+another.frequency[char2];
+			float numerator = frequency[char1]+frequency[char2]
+								+another.frequency[char1]+another.frequency[char2];
 			score += nt_score_matrix[char1*128+char2]*(numerator/denominator);
 			steps++;
 		}
 	}
-	if (steps) return score / steps;
-	return 0;
+	float addition1 = (frequency['-'] + another.frequency['-']) / denominator;
+	addition1 *= parameters[1] * 6; // gap
+	if (steps) return score / steps + addition1;
+	return addition1;
 }
 
 float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
@@ -680,20 +674,30 @@ float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
 	another.CalcFrequenciesAA(index2);
 	for (unsigned int i = 0; i < sequences.size(); i++) {
 		unsigned char char1 = sequences[i]->TranslateNTtoAA(index1);
-		if (char1 == '-' || char1 == '!' || char1 == '*') continue;
+		if (char1 == '-' || char1 == '!') continue;
+		// allow stop codon in the sequence end 
+		if (char1 == '*' && sequences[i]->Length() * 19 / 20 < index1) 
+			frequency['*']--;
 		for (unsigned int j = 0; j < another.sequences.size(); j++) {
 			unsigned char char2 = another.sequences[j]->TranslateNTtoAA(index2);
-			if (char2 == '-' || char2 == '!' || char2 == '*') continue;
-			float numerator = frequency[char1]+another.frequency[char2];
+			if (char2 == '-' || char2 == '!') continue;
+			// allow stop codon in the sequence end 
+			if (char2 == '*' && another.sequences[j]->Length() * 19 / 20 < index2) 
+				another.frequency['*']--;
+			float numerator = frequency[char1]+frequency[char2]
+								+another.frequency[char1]+another.frequency[char2];
 			score += aa_score_matrix[char1*128+char2]*(numerator/denominator);
+			steps++;
 		}
 	}
-	float addition1 = 2 * (frequency['!'] + another.frequency['!']) / denominator;
-	addition1 *= parameters[2]; // gap frame
-	float addition2 = 2 * (frequency['*'] + another.frequency['*']) / denominator;
-	addition2 *= parameters[3]; // stop cost
-	if (steps) return score / steps + addition1 + addition2;
-	return addition1 + addition2;
+	float addition1 = (frequency['-'] + another.frequency['-']) / denominator;
+	addition1 *= parameters[1] * 3; // gap
+	float addition2 = (frequency['!'] + another.frequency['!']) / denominator;
+	addition2 *= parameters[2]; // gap frame
+	float addition3 = (frequency['*'] + another.frequency['*']) / denominator;
+	addition3 *= parameters[3]; // stop cost
+	if (steps) return score / steps + addition1 + addition2 + addition3;
+	return addition1 + addition2 + addition3;
 }
 
 void Profile :: CalcFrequenciesAA(int position) {

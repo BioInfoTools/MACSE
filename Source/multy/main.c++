@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 		char* input_fasta = argv[1];
 		// default values
 		std::string NTsubs = "NUC-45", AAsubs = "BLOSUM62";
-		int gap_open = -5, gap_extension = -3, gap_frame = -8, stop_cost = -5;
+		int gap_open = -25, gap_extension = -5, gap_frame = -50, stop_cost = -15;
 		// extra parameters
 		if (argc == 8) {
 			NTsubs = argv[2];

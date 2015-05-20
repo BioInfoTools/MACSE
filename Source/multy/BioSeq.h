@@ -13,8 +13,6 @@ struct BioSeq {
 	// destructor
 	~BioSeq() { }
 	// accessors
-	std::string GetNTseq() { return nt_seq; }
-	std::string GetName() { return name; }
 	int Length() { return nt_seq.length(); }
 	// translater
 	std::string GetAAseq();
