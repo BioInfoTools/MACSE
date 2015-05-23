@@ -20,6 +20,7 @@ PairwiseAlign :: PairwiseAlign(const char* nt_score_matrix,
 void PairwiseAlign :: NewScoreMatrix(const char* file_name, int* score_matrix) {
 	std::ifstream ifs;
 	ifs.open (file_name, std::ifstream::in);
+	if (!ifs.is_open()) return;
 	// initialization
 	for (int i = 0; i < 128; i++)
 		for (int j = 0; j < 128; j++)

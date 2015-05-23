@@ -23,23 +23,44 @@ unsigned int* best_mvt = NULL;
 float* scores = NULL;
 int dim = 0;
 
-// array of parameters for the aligner profiles 
+// array of parameters 
+// parameters[0] = gap open cost
+// parameters[1] = gap extension cost
+// parameters[2] = gap frame cost
+// parameters[3] = stop cost
 int parameters[4]; 
+const int* nt_subst; // int array [128 * 128] nt_subst['A'*128+'C']<-score A & C
+const int* aa_subst; // int array [128 * 128]
 
-void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
+#define NUC 4
+#define AMINO 23
+const char nucleotides[] = {'A', 'C', 'G', 'T'};
+const char amino[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
+	'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'};
+
+void UPGMA(std::vector<BioSeq*>& sequences, func distance,
+						int go, int ge, int gf, int sc, const int* nt, const int* aa) {
 	unsigned int n = sequences.size();
+	if (!n) return; // zero check
+	// fill parameters
+	parameters[0] = go; // gap open
+	parameters[1] = ge; // gap extension
+	parameters[2] = gf; // gap frame
+	parameters[3] = sc; // stop cost
+	nt_subst = nt; // NT substitution matrix
+	aa_subst = aa; // AA substitution matrix
+	// initialization
 	double* matrix = new double[n * n];
 	Profile* profiles = new Profile[n];
 	double max = -((int)MAXINT);
 	unsigned int max_i = 0, max_j = 0;
+	// fill UPGMA table
 	for (unsigned int i = 0; i < n; i++) {
 		// at first each sequence is a single cluster
 		profiles[i].sequences.push_back(sequences[i]);
-		profiles[i].nt_score_matrix = aligner.GetNTscoreMatrix();
-		profiles[i].aa_score_matrix = aligner.GetAAscoreMatrix();
 		// calculating distances between other sequences
 		for (unsigned int j = 0; j < i; j++) {
-			matrix[i*n + j] = aligner.Align(sequences[i],sequences[j]);
+			matrix[i*n + j] = distance(sequences[i],sequences[j]);
 			// searching max score
 			if (matrix[i*n + j] > max) {
 				max = matrix[i*n + j];
@@ -64,20 +85,16 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 	cout << "max_j = " << max_j << endl;
 #endif
 
-	parameters[0] = aligner.GetGapOpen();
-	parameters[1] = aligner.GetGapExtension();
-	parameters[2] = aligner.GetGapFrame();
-	parameters[3] = aligner.GetStopCost();
 	int alive = n;
 	bool* corpse = new bool[n];
 	memset(corpse, false, sizeof(bool)*n); // everybody is alive
 	while (alive > 1) {
 		// collapse i and j
-		
+
 #ifdef DEBUG
 		cout << "collapse " << max_i << " and " << max_j << endl;
 #endif
-		
+
 		profiles[max_i] = profiles[max_i] + profiles[max_j];
 		// change the components count for max_i cluster
 		matrix[max_i*n+max_i]+=matrix[max_j*n+max_j];
@@ -124,6 +141,13 @@ void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner) {
 			}
 		}
 	}
+	// completion frames
+	int l = sequences[0]->Length();
+	int f = (3 - l % 3) % 3;
+	for_each(sequences.begin(), sequences.end(), [l, f] (BioSeq* s) {
+		s->nt_seq.insert(l, f, '-');
+	});
+	// deleting temporary matrices
 	delete[] corpse;
 	delete[] matrix;
 	delete[] profiles;
@@ -386,7 +410,8 @@ Profile& Profile :: operator + (Profile& another) {
 					way = 13;
 				}
 			}
-			score += parameters[2];
+			if (i > 2 && j > 2)
+				score += parameters[2];
 			// AA match
 			if (i - 3 >= 0) {
 				if (best_mvt[(i-3)*dim+j-1] < 8) {
@@ -643,61 +668,11 @@ Profile& Profile :: operator + (Profile& another) {
 }
 
 float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
-	int steps = 0;
-	float score = 0;
-	float denominator = sequences.size() + another.sequences.size();
-	CalcFrequenciesNT(index1); 
-	another.CalcFrequenciesNT(index2);
-	for (unsigned int i = 0; i < sequences.size(); i++) {
-		unsigned char char1 = sequences[i]->nt_seq[index1];
-		if (char1 == '-') continue;
-		for (unsigned int j = 0; j < another.sequences.size(); j++) {
-			unsigned char char2 = another.sequences[j]->nt_seq[index2];
-			if (char2 == '-') continue;
-			float numerator = frequency[char1]+frequency[char2]
-								+another.frequency[char1]+another.frequency[char2];
-			score += nt_score_matrix[char1*128+char2]*(numerator/denominator);
-			steps++;
-		}
-	}
-	float addition1 = (frequency['-'] + another.frequency['-']) / denominator;
-	addition1 *= parameters[1] * 6; // gap
-	if (steps) return score / steps + addition1;
-	return addition1;
+	// ???
 }
 
 float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
-	int steps = 0;
-	float score = 0;
-	float denominator = sequences.size() + another.sequences.size();
-	CalcFrequenciesAA(index1); 
-	another.CalcFrequenciesAA(index2);
-	for (unsigned int i = 0; i < sequences.size(); i++) {
-		unsigned char char1 = sequences[i]->TranslateNTtoAA(index1);
-		if (char1 == '-' || char1 == '!') continue;
-		// allow stop codon in the sequence end 
-		if (char1 == '*' && sequences[i]->Length() * 19 / 20 < index1) 
-			frequency['*']--;
-		for (unsigned int j = 0; j < another.sequences.size(); j++) {
-			unsigned char char2 = another.sequences[j]->TranslateNTtoAA(index2);
-			if (char2 == '-' || char2 == '!') continue;
-			// allow stop codon in the sequence end 
-			if (char2 == '*' && another.sequences[j]->Length() * 19 / 20 < index2) 
-				another.frequency['*']--;
-			float numerator = frequency[char1]+frequency[char2]
-								+another.frequency[char1]+another.frequency[char2];
-			score += aa_score_matrix[char1*128+char2]*(numerator/denominator);
-			steps++;
-		}
-	}
-	float addition1 = (frequency['-'] + another.frequency['-']) / denominator;
-	addition1 *= parameters[1] * 3; // gap
-	float addition2 = (frequency['!'] + another.frequency['!']) / denominator;
-	addition2 *= parameters[2]; // gap frame
-	float addition3 = (frequency['*'] + another.frequency['*']) / denominator;
-	addition3 *= parameters[3]; // stop cost
-	if (steps) return score / steps + addition1 + addition2 + addition3;
-	return addition1 + addition2 + addition3;
+	// ???
 }
 
 void Profile :: CalcFrequenciesAA(int position) {

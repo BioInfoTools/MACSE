@@ -10,8 +10,6 @@
 struct Profile {
 	// data
 	std::vector<BioSeq*> sequences;
-	const int* nt_score_matrix = NULL; // int array [128*128]
-	const int* aa_score_matrix = NULL; // int array [128*128]
 	int frequency[128];
 	// constructor
 	Profile() { };
@@ -21,8 +19,6 @@ struct Profile {
 		/*
 		for_each(sequences.begin(), sequences.end(), 
 			[] (BioSeq* seq) { delete seq; } );
-		delete[] nt_score_matrix;
-		delete[] aa_score_matrix;
 		*/
 	};
 	// alignment of two profiles
@@ -46,8 +42,13 @@ struct Profile {
 	}
 };
 
+// distance function type
+typedef std::function<int (BioSeq* seq1, BioSeq* seq2)> func;
+
 // UPGMA function change input sequences!
-void UPGMA(std::vector<BioSeq*>& sequences, PairwiseAlign& aligner);
+void UPGMA(std::vector<BioSeq*>& sequences, func distance,
+					 // input parameters
+					 int go, int ge, int gf, int sc, const int* nt, const int* aa);
 void UPGMAfree();
 
 #endif

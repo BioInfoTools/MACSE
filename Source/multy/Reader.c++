@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-void ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& result) {
+int ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& result) {
 	std::filebuf fb;
 	if (fb.open(input_fasta, std::ios::in)) {
 		std::istream is(&fb);
@@ -13,5 +13,7 @@ void ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& result) {
 			else if (line.size()) result.back()->nt_seq += line;
 		}
 		fb.close();
-	}
+		return 0;
+	} 
+	return 1;
 }

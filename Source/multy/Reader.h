@@ -5,6 +5,6 @@
 
 #include "BioSeq.h"
 
-void ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& buf);
+int ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& buf);
 
 #endif

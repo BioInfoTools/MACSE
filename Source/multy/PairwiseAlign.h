@@ -24,10 +24,10 @@ public:
 	int Align(const BioSeq* s1, const BioSeq* s2);
 	//====================
 	void ChangeNTscoreMatrix(const char* file_name) {
-		NewScoreMatrix(file_name, nt_score_matrix);
+		return NewScoreMatrix(file_name, nt_score_matrix);
 	}
 	void ChangeAAscoreMatrix(const char* file_name) {
-		NewScoreMatrix(file_name, aa_score_matrix);
+		return NewScoreMatrix(file_name, aa_score_matrix);
 	}
 	//====================
 	// use this methods to share filled score matrices

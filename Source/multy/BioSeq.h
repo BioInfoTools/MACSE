@@ -19,7 +19,10 @@ struct BioSeq {
 	char TranslateNTtoAA(int index) const;
 	// printer
 	void PrintAA(std::ostream& out);
-	void PrintNT(std::ostream& out) { out<<nt_seq<<'\t'<<name<<std::endl; }
+	void PrintNT(std::ostream& out) { 
+		out << name   << std::endl;
+		out << nt_seq << std::endl; 
+	}
 };
 
 #endif

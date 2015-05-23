@@ -137,6 +137,7 @@ std::string BioSeq :: GetAAseq() {
 }
 
 void BioSeq :: PrintAA(std::ostream& out) {
+	out << name << std::endl;
 	for (unsigned int i = 0; i+2 < nt_seq.length(); i += 3) {
 		if (nt_seq[i] == '-' && nt_seq[i+1] == '-' && nt_seq[i+2] == '-') {
 			out << '-';
@@ -266,7 +267,7 @@ void BioSeq :: PrintAA(std::ostream& out) {
 		}
 	}
 	if (nt_seq.length() % 3) out << '!';
-	out << '\t' << name << std::endl;
+	out << std::endl;
 }
 
 char BioSeq :: TranslateNTtoAA(int i) const {
