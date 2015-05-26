@@ -8,11 +8,6 @@
 #include "Profile.h"
 #include "PairwiseAlign.h"
 
-
-
-#include <typeinfo>
-
-
 using std::cout;
 using std::endl;
 
@@ -20,7 +15,12 @@ using std::endl;
 char* input_fasta(NULL);
 std::string NTsubst("NUC-45");
 std::string AAsubst("BLOSUM62");
-int gap_open(-8), gap_extension(-3), gap_frame(-15), stop_cost(-50);
+std::string algo("DEFAULT");
+int gap_open(-10), gap_extension(-3), gap_frame(-15), stop_cost(-50), kmer(10);
+
+#define BORDER1 1000
+
+#define BORDER2 15
 
 void usage(char *name)
 {
@@ -40,6 +40,9 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t-s cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t-k use k-mers in UPGMA" << endl;
+	cout << "\t\tDEFAULT: k = " << kmer << endl;
+	cout << "\t-p use pairwise aligner in UPGMA" << endl;
 	cout << "long options" << endl;
 	cout << "\t--help show this message" << endl;
 	cout << "\t--input input file name (FASTA format expected)" << endl;
@@ -55,6 +58,9 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t--stop_cost cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t--k-mers use k-mers in UPGMA" << endl;
+	cout << "\t\tDEFAULT: k = " << kmer << endl;
+	cout << "\t--pairwise use pairwise aligner in UPGMA" << endl;
 }
 
 int main(int argc, char** argv) {
@@ -67,11 +73,14 @@ int main(int argc, char** argv) {
 		{"gap_extension", 1, 0, 'e'},
 		{"gap_frame", 1, 0, 'f'},
 		{"stop_cost", 1, 0, 's'},
+		{"k-mers", 0, 0, 'k'},
+		{"pairwise", 0, 0, 'p'},
 		{0,0,0,0}
 	};
 	int ind, code;
 	opterr = 1;
-	while ((code = getopt_long(argc, argv, "hi:n:a:g:e:f:s:", opt, &ind)) != -1) {
+	while ((code = getopt_long(argc, argv, "hkpi:n:a:g:e:f:s:", opt, &ind)) != -1) 
+	{
 		switch (code) {
 			case 'h':
 				usage(argv[0]);
@@ -96,6 +105,12 @@ int main(int argc, char** argv) {
 				break;
 			case 's':
 				stop_cost = atoi(optarg);
+				break;
+			case 'k':
+				algo = "KMERS";
+				break;
+			case 'p':
+				algo = "PAIRWISE";
 				break;
 			default:
 				usage(argv[0]);
@@ -133,12 +148,40 @@ int main(int argc, char** argv) {
 		cout << "can't open AA substitution matrix file: " << AAsubst << endl;
 		return -1;
 	}
-	func accurate_distance = [&aligner] (BioSeq* seq1, BioSeq* seq2) -> int { 
-		return aligner.Align(seq1, seq2); 
-	};
 	// calculating MSA
+	if (algo == "DEFAULT") {
+		int average_length = 0;
+		for_each(data.begin(), data.end(), [&average_length] (BioSeq* seq) {
+			average_length += seq->Length();
+		} );
+		average_length /= data.size();
+		if (average_length > BORDER1 || data.size() > BORDER2) 
+			algo = "KMERS";
+		else
+			algo = "PAIRWISE";
+	}
+	func distance;
+	if (algo == "PAIRWISE") 
+		distance = [&aligner] (BioSeq* seq1, BioSeq* seq2) -> int { 
+			return aligner.Align(seq1, seq2); 
+		};
+	else 
+		distance = [] (BioSeq* seq1, BioSeq* seq2) -> int { 
+			int score = 0;
+			for (int i = 0; i < seq1->Length() - kmer + 1; i++) {
+				for (int j = 0; j < seq2->Length() - kmer + 1; j++) {
+					// test i-th k-mer in seq1 and j-th k-mer in seq2
+					bool flag = true;
+					for (int z = 0; flag && z < kmer; z++) {
+						flag = ((*seq1)[i + z] == (*seq2)[j + z]);
+					}
+					if (flag) score++;
+				}
+			}
+			return score;
+		};
 	// this call will change data!
-	UPGMA(data, accurate_distance, gap_open, gap_extension, gap_frame, stop_cost, 
+	UPGMA(data, distance, gap_open, gap_extension, gap_frame, stop_cost, 
 				aligner.GetNTscoreMatrix(), aligner.GetAAscoreMatrix()); 
 	// print results
 	cout << endl;

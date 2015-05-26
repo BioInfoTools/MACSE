@@ -34,9 +34,9 @@ const int* aa_subst; // int array [128 * 128]
 
 #define NUC 4
 #define AMINO 23
-const char nucleotides[] = {'A', 'C', 'G', 'T'};
-const char amino[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 
-	'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'};
+const unsigned char nucleotides[] = {'A', 'C', 'G', 'T'};
+const unsigned char amino[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 
+			'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'};
 
 void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 						int go, int ge, int gf, int sc, const int* nt, const int* aa) {
@@ -51,14 +51,12 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 	aa_subst = aa; // AA substitution matrix
 	// initialization
 	double* matrix = new double[n * n];
-	Profile* profiles = new Profile[n];
+	Profile profile;
 	double max = -((int)MAXINT);
 	unsigned int max_i = 0, max_j = 0;
 	// fill UPGMA table
 	for (unsigned int i = 0; i < n; i++) {
-		// at first each sequence is a single cluster
-		profiles[i].sequences.push_back(sequences[i]);
-		// calculating distances between other sequences
+		// calculating distances between sequences
 		for (unsigned int j = 0; j < i; j++) {
 			matrix[i*n + j] = distance(sequences[i],sequences[j]);
 			// searching max score
@@ -71,6 +69,8 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 		// in [i, i] position stores the count of components in cluster
 		matrix[i*n + i] = 1; 
 	}
+	
+	profile.sequences.push_back(sequences[]); // what put into profile?
 	
 #ifdef DEBUG
 	cout << "Building UPGMA matrix done!" << endl;
@@ -89,8 +89,8 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 	bool* corpse = new bool[n];
 	memset(corpse, false, sizeof(bool)*n); // everybody is alive
 	while (alive > 1) {
-		// collapse i and j
-
+		// add sequence j to profile
+		// HOW??
 #ifdef DEBUG
 		cout << "collapse " << max_i << " and " << max_j << endl;
 #endif
@@ -162,6 +162,11 @@ inline void UPGMAfree() {
 	best_mvt = NULL;
 	scores = NULL;
 	dim = 0;
+}
+
+Profile& Profile :: operator + (BioSeq* sequence) {
+	
+	return *this;
 }
 
 Profile& Profile :: operator + (Profile& another) {
@@ -655,6 +660,13 @@ Profile& Profile :: operator + (Profile& another) {
 	for_each(another.sequences.begin(), another.sequences.end(), [&](BioSeq* s) {
 		sequences.push_back(s);
 	});
+	// check borders
+	for_each(sequences.begin(), sequences.end(), [&](BioSeq* s) {
+		while (s->first_nongap < s->Length() && s->nt_seq[s->first_nongap] == '-')
+			s->first_nongap++;
+		while (s->last_nongap && s->nt_seq[s->last_nongap] == '-')
+			s->last_nongap--;
+	});
 	
 #ifdef DEBUG
 	for_each(sequences.begin(), sequences.end(), [](BioSeq* s) {
@@ -668,11 +680,67 @@ Profile& Profile :: operator + (Profile& another) {
 }
 
 float Profile :: ColumnNTscore(Profile& another, int index1, int index2) {
-	// ???
+	int score = 0, steps = 0;
+	float denominator = sequences.size() + another.sequences.size();
+	CalcFrequenciesNT(index1); 
+	another.CalcFrequenciesNT(index2);
+	for (int i = 0; i < NUC; i++) {
+		frequency[nucleotides[i]] += another.frequency[nucleotides[i]];
+	}
+	// frequency - array for index1+index2 columns
+	for (int i = 0; i < NUC; i++) {
+		unsigned char char1 = nucleotides[i];
+		if (!frequency[char1]) continue;
+		steps++;
+		score += frequency[char1] * nt_subst[char1*128 + char1];
+		for (int j = i+1; j < NUC; j++) {
+			unsigned char char2 = nucleotides[j];
+			if (!frequency[char2]) continue;
+			score += (frequency[char1]+frequency[char2]) * nt_subst[char1*128+char2];
+			steps++;
+		}
+	}
+	if (frequency['-']) {
+		score += frequency['-'] * parameters[1]; // gap penalty
+		steps++;
+	}
+	return score / denominator / steps;
 }
 
 float Profile :: ColumnAAscore(Profile& another, int index1, int index2) {
-	// ???
+	int score = 0, steps = 0;
+	float denominator = sequences.size() + another.sequences.size();
+ 	CalcFrequenciesAA(index1); 
+ 	another.CalcFrequenciesAA(index2);
+	for (int i = 0; i < AMINO; i++) {
+		frequency[amino[i]] += another.frequency[amino[i]];
+	}
+	// frequency - array for index1+index2 columns
+	for (int i = 0; i < AMINO; i++) {
+		unsigned char char1 = amino[i];
+		if (!frequency[char1]) continue;
+		steps++;
+		score += frequency[char1] * aa_subst[char1*128 + char1];
+		for (int j = i+1; j < AMINO; j++) {
+			unsigned char char2 = amino[j];
+			if (!frequency[char2]) continue;
+			score += (frequency[char1]+frequency[char2]) * aa_subst[char1*128+char2];
+			steps++;
+		}
+	}
+	if (frequency['-']) {
+		score += frequency['-'] * parameters[1]; // gap penalty
+		steps++;
+	}
+	if (frequency['!']) {
+		score += frequency['!'] * parameters[2]; // gap frame
+		steps++;
+	}
+	if (frequency['*']) {
+		score += frequency['*'] * parameters[3]; // stop cost
+		steps++;
+	}
+	return score / denominator / steps;
 }
 
 void Profile :: CalcFrequenciesAA(int position) {

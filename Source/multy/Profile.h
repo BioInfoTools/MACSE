@@ -23,6 +23,8 @@ struct Profile {
 	};
 	// alignment of two profiles
 	Profile& operator + (Profile& another);
+	// alignment of profile and sequence
+	Profile& operator + (BioSeq* sequence);
 	// get score in column
 	float ColumnNTscore(Profile& another, int index1, int index2);
 	float ColumnAAscore(Profile& another, int index1, int index2);

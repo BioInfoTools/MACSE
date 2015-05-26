@@ -1,5 +1,9 @@
+CFLAGS=-Wall -Wextra -std=c++11
+SOURCES=*.c++
+NAME=multy
+
 All:
-	g++ -Wall -O3 -std=c++11 *.c++ -o multy
+	g++ ${CFLAGS} -O3  ${SOURCES} -o ${NAME}
 
 DEBUG:
-	g++ -Wall -O0 -DDEBUG -g -std=c++11 *.c++ -o multy
+	g++ ${CFLAGS} -DDEBUG -g -O0  ${SOURCES} -o ${NAME}
