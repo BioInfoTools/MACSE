@@ -12,6 +12,7 @@ using std::cout;
 using std::endl;
 
 // program arguments
+extern int dim; // global varaible, declared in Profile.c++
 char* input_fasta(NULL);
 std::string NTsubst("NUC-45");
 std::string AAsubst("BLOSUM62");
@@ -40,6 +41,8 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t-s cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t-d initial dimensions of the matrices" << endl;
+	cout << "\t\tDEFAULT: 1024x1024" << endl;
 	cout << "\t-k use k-mers in UPGMA" << endl;
 	cout << "\t\tDEFAULT: k = " << kmer << endl;
 	cout << "\t-p use pairwise aligner in UPGMA" << endl;
@@ -58,9 +61,30 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t--stop_cost cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t--dimension initial dimensions of the matrices" << endl;
+	cout << "\t\tDEFAULT: 1024x1024" << endl;
 	cout << "\t--k-mers use k-mers in UPGMA" << endl;
 	cout << "\t\tDEFAULT: k = " << kmer << endl;
 	cout << "\t--pairwise use pairwise aligner in UPGMA" << endl;
+}
+
+void CheckSequences(std::vector<BioSeq*> &data) {
+	for (auto index = data.begin(); index != data.end(); ) {
+		BioSeq* seq = *index;
+		bool flag = true;
+		for (int i = 0; i < seq->Length(); i++) {
+			char c = (*seq)[i];
+			if (c != 'A' && c != 'C' && c != 'G' && c != 'T') {
+				cout << "Unknown nuc '" << c << "' in sequence: " << seq->name << endl;
+				cout << "Position: " << i << endl;
+				cout << "Sequence removed" << endl;
+				index = data.erase(index);
+				flag = false;
+				break;
+			}
+		}
+		if (flag) index++;
+	}
 }
 
 int main(int argc, char** argv) {
@@ -75,12 +99,12 @@ int main(int argc, char** argv) {
 		{"stop_cost", 1, 0, 's'},
 		{"k-mers", 0, 0, 'k'},
 		{"pairwise", 0, 0, 'p'},
+		{"dimension", 1, 0, 'd'},
 		{0,0,0,0}
 	};
 	int ind, code;
 	opterr = 1;
-	while ((code = getopt_long(argc, argv, "hkpi:n:a:g:e:f:s:", opt, &ind)) != -1) 
-	{
+	while ((code = getopt_long(argc,argv,"hkpi:n:a:g:e:f:s:d:",opt,&ind)) != -1) {
 		switch (code) {
 			case 'h':
 				usage(argv[0]);
@@ -112,6 +136,10 @@ int main(int argc, char** argv) {
 			case 'p':
 				algo = "PAIRWISE";
 				break;
+			case 'd':
+				dim = atoi(optarg);
+				if (dim < 1) dim = 1;
+				break;
 			default:
 				usage(argv[0]);
 				return -1;
@@ -128,6 +156,7 @@ int main(int argc, char** argv) {
 		cout << "can't open input file: " << input_fasta << endl;
 		return -1;
 	}
+	CheckSequences(data);
 	cout << data.size() << " sequences were obtained" << endl; 
 	cout << "Input parameters:" << endl;
 	cout << "NT substitution matrix\t" << NTsubst << endl;

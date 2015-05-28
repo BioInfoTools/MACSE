@@ -8,8 +8,6 @@ struct BioSeq {
 	// data
 	std::string name;
 	std::string nt_seq;
-	int first_nongap = 0;
-	int last_nongap  = 0;
 	// constructor
 	BioSeq(std::string n, std::string s): name(n), nt_seq(s) { }
 	// destructor
@@ -17,6 +15,8 @@ struct BioSeq {
 	// accessors
 	int Length() { return nt_seq.length(); }
 	char operator [] (int index) { return nt_seq[index]; }
+	void InsertGap(int pos, int count) {if(count) nt_seq.insert(pos, count, '-');}
+	void InsertGap(int pos) { nt_seq.insert(pos, 1, '-'); }
 	// translater
 	std::string GetAAseq();
 	char TranslateNTtoAA(int index) const;

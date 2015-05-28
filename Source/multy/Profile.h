@@ -26,6 +26,8 @@ struct Profile {
 	// alignment of profile and sequence
 	Profile& operator + (BioSeq* sequence);
 	// get score in column
+	float ColumnNTscore(BioSeq* seq, int index1, int index2);
+	float ColumnAAscore(BioSeq* seq, int index1, int index2);
 	float ColumnNTscore(Profile& another, int index1, int index2);
 	float ColumnAAscore(Profile& another, int index1, int index2);
 	// fill an array of frequency
