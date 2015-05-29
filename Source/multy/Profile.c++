@@ -392,13 +392,13 @@ Profile& Profile :: operator + (BioSeq* sequence) {
 	float result_score = scores[(dim1-1)*dim+dim2-1];
 	int i = dim1-1, j = dim2-1;
 	// ...search in last line
-	for (int index = 0; index < dim2-1; index++) 
+	for (int index = dim2 - dim2 / 10; index < dim2-1; index++) 
 		if (scores[(dim1-1)*dim+index] > result_score) {
 			j = index;
 			result_score = scores[(dim1-1)*dim+index];
 		}
 	// ...search in last column
-	for (int index = 0; index < dim1-1; index++) 
+	for (int index = dim1 - dim1 / 10; index < dim1-1; index++) 
 		if (scores[index*dim + dim2-1] > result_score) {
 			i = index; 
 			j = dim2-1;

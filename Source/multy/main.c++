@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 		{"gap_extension", 1, 0, 'e'},
 		{"gap_frame", 1, 0, 'f'},
 		{"stop_cost", 1, 0, 's'},
-		{"k-mers", 0, 0, 'k'},
+		{"k-mers", 2, 0, 'k'},
 		{"pairwise", 0, 0, 'p'},
 		{"dimension", 1, 0, 'd'},
 		{"bonus", 1, 0, 'b'},
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
 	};
 	int ind, code;
 	opterr = 1;
-	while ((code = getopt_long(argc,argv,"hkpi:n:a:g:e:f:s:d:b:",opt,&ind)) != -1) 
+	while ((code=getopt_long(argc,argv,"hpk::i:n:a:g:e:f:s:d:b:",opt,&ind)) != -1) 
 	{
 		switch (code) {
 			case 'h':
@@ -140,6 +140,7 @@ int main(int argc, char** argv) {
 				break;
 			case 'k':
 				algo = "KMERS";
+				if (optarg) kmer = atoi(optarg);
 				break;
 			case 'p':
 				algo = "PAIRWISE";
