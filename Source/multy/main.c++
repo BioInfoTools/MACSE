@@ -11,13 +11,15 @@
 using std::cout;
 using std::endl;
 
+// initial dimensions of the matrices; using in Profile.c++
+int dim = 1024; 
 // program arguments
-extern int dim; // global varaible, declared in Profile.c++
 char* input_fasta(NULL);
 std::string NTsubst("NUC-45");
 std::string AAsubst("BLOSUM62");
 std::string algo("DEFAULT");
 int gap_open(-10), gap_extension(-3), gap_frame(-15), stop_cost(-50), kmer(10);
+int bonus(0); 
 
 #define BORDER1 1000
 
@@ -41,6 +43,8 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t-s cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t-b bonus for not break the frame" << endl;
+	cout << "\t\tDEFAULT: " << bonus << endl;
 	cout << "\t-d initial dimensions of the matrices" << endl;
 	cout << "\t\tDEFAULT: 1024x1024" << endl;
 	cout << "\t-k use k-mers in UPGMA" << endl;
@@ -61,6 +65,8 @@ void usage(char *name)
 	cout << "\t\tDEFAULT: " << gap_frame << endl;
 	cout << "\t--stop_cost cost of a stop codon not at the end of the sequence" << endl;
 	cout << "\t\tDEFAULT: " << stop_cost << endl;
+	cout << "\t--bonus bonus for not break the frame" << endl;
+	cout << "\t\tDEFAULT: " << bonus << endl;
 	cout << "\t--dimension initial dimensions of the matrices" << endl;
 	cout << "\t\tDEFAULT: 1024x1024" << endl;
 	cout << "\t--k-mers use k-mers in UPGMA" << endl;
@@ -100,11 +106,13 @@ int main(int argc, char** argv) {
 		{"k-mers", 0, 0, 'k'},
 		{"pairwise", 0, 0, 'p'},
 		{"dimension", 1, 0, 'd'},
+		{"bonus", 1, 0, 'b'},
 		{0,0,0,0}
 	};
 	int ind, code;
 	opterr = 1;
-	while ((code = getopt_long(argc,argv,"hkpi:n:a:g:e:f:s:d:",opt,&ind)) != -1) {
+	while ((code = getopt_long(argc,argv,"hkpi:n:a:g:e:f:s:d:b:",opt,&ind)) != -1) 
+	{
 		switch (code) {
 			case 'h':
 				usage(argv[0]);
@@ -139,6 +147,9 @@ int main(int argc, char** argv) {
 			case 'd':
 				dim = atoi(optarg);
 				if (dim < 1) dim = 1;
+				break;
+			case 'b':
+				bonus = atoi(optarg);
 				break;
 			default:
 				usage(argv[0]);

@@ -50,7 +50,7 @@ struct Profile {
 typedef std::function<int (BioSeq* seq1, BioSeq* seq2)> func;
 
 // UPGMA function change input sequences!
-void UPGMA(std::vector<BioSeq*>& sequences, func distance,
+void UPGMA(std::vector<BioSeq*>& sequences, func distance, 
 					 // input parameters
 					 int go, int ge, int gf, int sc, const int* nt, const int* aa);
 void UPGMAfree();

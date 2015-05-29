@@ -18,7 +18,7 @@
 
 // global tables for merge sequences
 // free in UPGMAfree
-int dim = 1024;
+extern int dim;
 unsigned int* best_mvt = NULL;
 float* scores = NULL;
 
@@ -27,9 +27,10 @@ float* scores = NULL;
 // parameters[1] = gap extension cost
 // parameters[2] = gap frame cost
 // parameters[3] = stop cost
-int parameters[4]; 
+int parameters[5]; 
 const int* nt_subst; // int array [128 * 128] nt_subst['A'*128+'C']<-score A & C
 const int* aa_subst; // int array [128 * 128]
+extern int bonus;
 
 #define NUC 4
 #define AMINO 23
@@ -37,8 +38,9 @@ const unsigned char nucleotides[] = {'A', 'C', 'G', 'T'};
 const unsigned char amino[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 
 			'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'};
 
-void UPGMA(std::vector<BioSeq*>& sequences, func distance,
-						int go, int ge, int gf, int sc, const int* nt, const int* aa) {
+void UPGMA(std::vector<BioSeq*>& sequences, func distance, 
+						int go, int ge, int gf, int sc, const int* nt, const int* aa) 
+{
 	unsigned int n = sequences.size();
 	if (!n) return; // zero check
 	// memory allocation for global tables
@@ -93,43 +95,41 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 #ifdef DEBUG
 	cout << "add sequence #" << max_j << endl;
 #endif
-
+		parameters[4] = bonus;  // bonus for not break the frame
 		profile = profile + sequences[max_j];
 		// killing max_j
 		corpse[max_j] = true; 
 		alive--;
 		// updating distances && searching new max
 		max = -MAXINT;
+		int new_max_j = max_j;
 		// ...in max_i column
 		for (unsigned int k = max_i + 1; k < n; k++) {
 			if (!corpse[k]) {
-				matrix[k*n+max_i] *= matrix[max_i*(n+1)];
 				if (k > max_j)
 					matrix[k*n+max_i] += matrix[k*n+max_j] * matrix[max_j*(n+1)];
 				else 
 					matrix[k*n+max_i] += matrix[max_j*n+k] * matrix[max_j*(n+1)];
-				matrix[k*n+max_i] /= (matrix[max_i*(n+1)] + matrix[max_j*(n+1)]);
 				if (max < matrix[k*n+max_i]) {
 					max = matrix[k*n+max_i];
-					max_j = k;
+					new_max_j = k;
 				}
 			}
 		}
 		// ...in max_i row
 		for (unsigned int k = 0; k < max_i; k++) {
 			if (!corpse[k]) {
-				matrix[max_i*n+k] *= matrix[max_i*(n+1)];
 				if (k > max_j)
 					matrix[max_i*n+k] += matrix[k*n+max_j] * matrix[max_j*(n+1)];
 				else 
 					matrix[max_i*n+k] += matrix[max_j*n+k] * matrix[max_j*(n+1)];
-				matrix[max_i*n+k] /= (matrix[max_i*(n+1)] + matrix[max_j*(n+1)]);
 				if (max < matrix[max_i*n+k]) {
 					max = matrix[max_i*n+k];
-					max_j = k;
+					new_max_j = k;
 				}
 			}
 		}
+		max_j = new_max_j;
 	}
 	// completion frames
 	int l = sequences[0]->Length();
@@ -358,13 +358,28 @@ Profile& Profile :: operator + (BioSeq* sequence) {
 				}
 			}
 			if (i - 3 >= 0 && j - 3 >= 0) { 
-				if (score < ColumnAAscore(sequence, i-3,j-3) 
-					+ ColumnNTscore(sequence, i-3,j-3) + ColumnNTscore(sequence, i-2,j-2) 
-					+ ColumnNTscore(sequence, i-1, j-1) + scores[(i-3)*dim+j-3]) {
-					score = ColumnAAscore(sequence, i-3,j-3) 
-					+ ColumnNTscore(sequence, i-3,j-3) + ColumnNTscore(sequence, i-2,j-2) 
-					+ ColumnNTscore(sequence, i-1, j-1)  + scores[(i-3)*dim+j-3];
-					way = 19;
+				if (best_mvt[(i-3)*dim+j-3] == 19) {
+					if (score < ColumnAAscore(sequence, i-3,j-3) 
+						+ ColumnNTscore(sequence, i-3,j-3)+ColumnNTscore(sequence, i-2,j-2) 
+						+ ColumnNTscore(sequence, i-1, j-1) + scores[(i-3)*dim+j-3] 
+						+ parameters[4]) {
+						score = ColumnAAscore(sequence, i-3,j-3) 
+						+ ColumnNTscore(sequence, i-3,j-3)+ColumnNTscore(sequence, i-2,j-2) 
+						+ ColumnNTscore(sequence, i-1, j-1) + scores[(i-3)*dim+j-3] 
+						+ parameters[4];
+						way = 19;
+						parameters[4]++;
+					} 
+				} else {
+					if (score < ColumnAAscore(sequence, i-3,j-3) 
+						+ ColumnNTscore(sequence, i-3,j-3)+ColumnNTscore(sequence, i-2,j-2) 
+						+ ColumnNTscore(sequence, i-1, j-1) + scores[(i-3)*dim+j-3]) {
+						score = ColumnAAscore(sequence, i-3,j-3) 
+						+ ColumnNTscore(sequence, i-3,j-3)+ColumnNTscore(sequence, i-2,j-2) 
+						+ ColumnNTscore(sequence, i-1, j-1)  + scores[(i-3)*dim+j-3];
+						way = 19;
+						parameters[4] = bonus;
+					}
 				}
 			}
 			// score & way contain best option
@@ -414,6 +429,53 @@ Profile& Profile :: operator + (BioSeq* sequence) {
 	}
 	cout << endl << "(max) " << i << " - " << j << ' ' << result_score << endl;
 #endif 
+	
+	switch (best_mvt[i*dim + j]) {
+		case 1:
+			sequence->InsertGap(j); 
+			i--;
+			break;
+		case 2:
+			sequence->InsertGap(j);
+			i -= 2;
+			j--;
+			break;
+		case 3:
+			sequence->InsertGap(j, 2);
+			i -= 2;
+			break;
+		case 8:
+			InsertGap(i);
+			j--;
+			break;
+		case 9:
+			InsertGap(i);
+			i--;
+			j -= 2;
+			break;
+		case 10:
+			InsertGap(i, 2);
+			j -= 2;
+			break;
+		case 15:
+			i--;
+			j--;
+			break;
+		case 16:
+			i -= 2;
+			j -= 2;
+			break;
+		case 17:
+			i -= 2;
+			j--;
+			sequence->InsertGap(j);
+			break;
+		case 18:
+			i--;
+			j -= 2;
+			InsertGap(i);
+			break;
+	}
 	
 	while (i && j) {
 		switch (best_mvt[i*dim + j]) {
