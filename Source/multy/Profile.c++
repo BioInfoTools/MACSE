@@ -369,6 +369,7 @@ Profile& Profile :: operator + (BioSeq* sequence) {
 						+ parameters[4];
 						way = 19;
 						parameters[4]++;
+						if (parameters[4] > bonus) parameters[4] = bonus;
 					} 
 				} else {
 					if (score < ColumnAAscore(sequence, i-3,j-3) 

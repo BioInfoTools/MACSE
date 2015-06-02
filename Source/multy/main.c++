@@ -80,7 +80,10 @@ void CheckSequences(std::vector<BioSeq*> &data) {
 		bool flag = true;
 		for (int i = 0; i < seq->Length(); i++) {
 			char c = (*seq)[i];
-			if (c != 'A' && c != 'C' && c != 'G' && c != 'T') {
+			if (c == '\n' || c == '\r' || c == '\t' || c == ' ') {
+				seq->nt_seq.erase(i, 1);
+				i--;
+			} else if (c != 'A' && c != 'C' && c != 'G' && c != 'T') {
 				cout << "Unknown nuc '" << c << "' in sequence: " << seq->name << endl;
 				cout << "Position: " << i << endl;
 				cout << "Sequence removed" << endl;

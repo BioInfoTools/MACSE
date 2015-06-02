@@ -1,0 +1,69 @@
+<html>
+
+	<link rel="stylesheet" href="style.css" type="text/css" media="screen, projection" />
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1">
+		<title>multy</title>
+	</head>
+	
+	<body>
+		<div class="header"> 
+			<div id="header"> 
+				multy: множественное выравнивание кодирующих последовательностей
+			</div>
+			<nav>
+				<ul>
+					<li><a href="/index.html" class="link">ГЛАВНАЯ</a></li>
+					<li><a href="/documentation.html" class="link">ДОКУМЕНТАЦИЯ</a></li>
+					<li><a href="/test.html" class="link">ИСПОЛЬЗОВАНИЕ</a></li>
+				</ul>
+			</nav>
+		</div>
+		<div class="test-block">
+			<div id="blank">
+				<table>
+				<col width="50%" align=left valign=top><col width="25%" align=left valign=top><col align=left valign=top>
+				<form action="run_aligner.php" method="post">
+					<td>
+					<label>
+						Введите последовательности (FASTA формат)
+					</label>
+					<td COLSPAN=2 align=center>
+					<label>Входные параметры</label>
+					<tr>
+					<td ROWSPAN=3>
+						<p><textarea rows="15" cols="60" name="text"></textarea></p>
+						<p><input type="submit" value="Построить выравнивание"></p>
+					<form method="post">
+					<td>
+					<label>Штраф за начало разрыва</label>
+					<td>
+					<input name="gap_open" type="text" defval="-10" value="-10" size="10"></input>
+					<tr><td>
+					<label>Штраф за продолжение разрыва</label>
+					<td>
+					<input name="gap_extension" type="text" defval="-3" value="-3" size="10"></input>
+					<tr><td>
+					<label>Алгоритм вычисления расстояния для UPGMA</label>
+					<td>
+					<input type="radio" value="-k" name="algo"></input>
+					<label class="cbr" for="RalgoK">k-mers</label>
+					<br></br>
+					<input type="radio" value="-p" name="algo"></input>
+					<label class="cbr" for="RalgoP">парные выравнивания</label>
+					<br></br>
+					<input type="radio" checked="checked" value=" " name="algo"></input>
+					<label class="cbr" for="RalgoA">в зависимости от объема данных</label>
+					</form>
+				</form>
+				</table>
+			</div>
+		</div>
+		<div style="text-align: center; margin-top: 5pt">
+			<img src="BMSTU.png" width="100" height="118"/>
+		</div>
+	</body>
+
+</html>
