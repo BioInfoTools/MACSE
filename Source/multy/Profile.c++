@@ -10,6 +10,13 @@
 //#define DEBUG
 //#define PRINT_MATRIX
 
+#ifdef TIME
+	#include <ctime>
+	#include <iostream>
+	using std::cout;
+	using std::endl;
+#endif
+
 #ifdef DEBUG
 	#include <iostream>
 	using std::cout;
@@ -57,6 +64,13 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 	double* matrix = new double[n * n];
 	double max = -((int)MAXINT);
 	unsigned int max_i = 0, max_j = 0;
+	
+#ifdef TIME
+	std::clock_t start;
+	double duration;
+	start = std::clock();
+#endif
+	
 	// fill UPGMA table
 	for (unsigned int i = 0; i < n; i++) {
 		// calculating distances between sequences
@@ -70,6 +84,11 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 			}
 		}
 	}
+	
+#ifdef TIME
+	duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+	cout << "Building UPGMA matrix done! " << duration << "\n";
+#endif
 
 #ifdef DEBUG
 	cout << "Building UPGMA matrix done!" << endl;
@@ -95,8 +114,20 @@ void UPGMA(std::vector<BioSeq*>& sequences, func distance,
 #ifdef DEBUG
 	cout << "add sequence #" << max_j << endl;
 #endif
+
 		parameters[4] = bonus;  // bonus for not break the frame
+
+#ifdef TIME
+	start = std::clock();
+#endif
+
 		profile = profile + sequences[max_j];
+
+#ifdef TIME
+	duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+	cout << "add sequence #" << max_j << " " << duration << "\n";
+#endif
+
 		// killing max_j
 		corpse[max_j] = true; 
 		alive--;
