@@ -26,10 +26,12 @@ friend std::ostream& operator << (std::ostream& stream,
 	\end{lstlisting}
 \end{algorithm}
 
-Это позволяет оформить вывод результата следующим образом: листинг~\ref{lst:BioSeqPrintExample}, однако, в качестве работы программы желательно получить выравнивание не только на нуклеотидном, но также и на аминокислотном уровне. Для наглядного разделения этих двух опций, в структуру были добавлены методы $void$ $PrintNT(std::ostream\&$ $out)$ и $void$ $PrintAA(std::ostream\&$ $out);$, которые выводят результат выравнивания и его трансляцию соответственно в указанный поток $out$.
+Это позволяет оформить вывод результата следующим образом: листинг~\ref{lst:BioSeqPrintExample}, однако, в качестве работы программы желательно получить выравнивание не только на нуклеотидном, но также и на аминокислотном уровне. Для наглядного разделения этих двух опций, в структуру были добавлены методы $void$ $PrintNT(std::ostream\&$ $out)$ и $void$ $PrintAA(std::ostream\&$ $out)$, которые выводят результат выравнивания и его трансляцию соответственно в указанный поток $out$.
 \begin{algorithm}
 	\caption{Вывод результатов выравнивания и их трансляций различными способами} \label{lst:BioSeqPrintExample}
 	\begin{lstlisting}
+std::vector<BioSeq*> data; 
+...
 for_each(data.begin(), data.end(), [] (BioSeq* seq) { 
 		std::cout << *seq; 
 		seq->PrintNT(std::cout);
@@ -40,7 +42,7 @@ for_each(data.begin(), data.end(), [] (BioSeq* seq) {
 
 
 \subsubsection[Класс построения парного выравнивания]{\large Класс построения парного выравнивания}
-\hspace{\parindent} 
+\hspace{\parindent} Вычисление оптимального выравнивания двух последовательностей реализовано через  класс $PairwiseAlign$.
 
 \subsubsection[Профили]{\large Профили}
 \hspace{\parindent} 
