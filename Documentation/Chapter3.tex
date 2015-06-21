@@ -44,11 +44,17 @@ struct BioSeq {
 \subsubsection[Класс построения парного выравнивания]{\large Класс построения парного выравнивания}
 \hspace{\parindent} Вычисление оптимального выравнивания двух последовательностей реализовано через  класс $PairwiseAlign$ (листинг~\ref{lst:PairwiseAligner}). Таким образом, в одном объекте собираются и данные, и методы их обработки, что упрощает импорт алгоритма парного выравнивания в другой проект.\\
 \indent Класс не содержит полей с исходными последовательностями, в нем хранятся только структуры для построения ответа и параметры выравнивания: штрафы за разрывы, смещение рамки, появление преждевременного стоп-кодона, матрицы замен нуклеотидов и аминокислот. Данные для выравнивания передаются через метод $Align(const$ $BioSeq*$ $seq1,$ $const$ $BioSeq*$ $seq2)$, реализующий алгоритм из пункта~\ref{PairwiseAlign}. Однако, для увеличения производительности вместо рекурсии происходит заполнение таблицы оптимальных ходов, как в классическом алгоритме Нидлмана-Вунша.\\
-\indent Для хранения матриц замен используются два массива: $nt\_score\_matrix$ (нуклеотиды) и $aa\_score\_matrix$ (аминокислоты).  длиной $128\cdot 128$ символов. Адресация представлена следующим образом:
+\indent Для хранения матриц замен используются два массива: $nt\_score\_matrix$ (нуклеотиды) и $aa\_score\_matrix$ (аминокислоты), размерностью $128\cdot 128$ элементов, так как символы строк представлены одним байтом, принимающим значения от 0 до 127 (рисунок~\ref{ris:memory}).
+\begin{figure}[H]
+	\center{\includegraphics[width=0.75\linewidth]{memory.png}}
+	\caption{Представление матрицы замен в памяти компьютера}
+	\label{ris:memory}
+\end{figure}
+\indent Используя данный подход, на вход программе выравнивания можно подавать последовательности с символами из произвольного алфавита, необходимо лишь определить соответствующие матрицы замен и предоставить функцию для перевода кодонов. Адресация определена следующим образом:
 \begin{equation*}
 nt\_score\_matrix[(unsigned\hspace{0.2cm} char)'A'*128+(unsigned\hspace{0.2cm} char)'C']
 \end{equation*}
-Полученное значение --- цена за сопоставление аденина и цитозина. В общем случае, вместо конкретных нуклеотидов подставляются $i$-ый и $j$-ый символы обрабатываемых последовательностей: $seq1[i]$, $seq2[j]$.
+Полученное значение --- цена за сопоставление аденина ($A$) и цитозина ($C$). В общем случае, вместо конкретных нуклеотидов, в формулу подставляются $i$-ый и $j$-ый символы строк: $seq1[i]$, $seq2[j]$.
 
 \begin{algorithm}
 	\caption{Класс построения оптимального выравнивания двух последовательностей} \label{lst:PairwiseAligner}
@@ -63,13 +69,17 @@ private:
   int* F = NULL; // score matrix
   int* W = NULL; // way matrix
   void NewScoreMatrix(const char* file_name, int* score_matrix);
+  
 public:
-  PairwiseAlign(const char* nt_score_matrix, const char* aa_score_matrix,
-      int stop_cost, int gap_open, int gap_extension, int frame_gap);
+  PairwiseAlign(const char* nt_score_matrix, 
+      const char* aa_score_matrix, int stop_cost, int gap_open, 
+      int gap_extension, int frame_gap);
   ~PairwiseAlign() { if (F) delete[] F; if (W) delete[] W; }
+  
   // calc align 
   int Align(const BioSeq* seq1, const BioSeq* seq2);
   std::pair<std::string, std::string> GetAlign();
+  
   // change substitution matrices
   void ChangeNTscoreMatrix(const char* file_name) {
     return NewScoreMatrix(file_name, nt_score_matrix);
@@ -77,6 +87,7 @@ public:
   void ChangeAAscoreMatrix(const char* file_name) {
     return NewScoreMatrix(file_name, aa_score_matrix);
   }
+  
   // accessors
   int GetGapOpen() { return gap_open; } 
   int GetGapExtension() { return gap_extension; } 
@@ -87,58 +98,65 @@ public:
 \end{algorithm}
 
 \subsubsection[Профили]{\large Профили}
-\hspace{\parindent} Выравненные строки сохраняются в структуру $Profile$. Для экономии памяти и времени в профили заносятся не копии последовательностей, а только указатели на них. Функция объединения записана в виде перегруженной операции $+$ (листинг~\ref{lst:ProfilePlus}).
-
+\hspace{\parindent} Выравненные строки сохраняются в структуру $Profile$ (листинг~\ref{lst:ProfileStruct}). Для экономии памяти и времени в профили заносятся не копии последовательностей, а только указатели на них. Функция объединения записана в виде перегруженной операции $+$. Кроме этого, профили имеют методы для вычисления оценки за сопоставление двух столбцов нуклеотидов и аминокислот. Так же, как и для структуры $BioSeq$ реализована возможность вставки разрывов по указанному индексу заданной длины. Дополнительно, у профилей имеется массив $frequency$, содержащий частоты распределения нуклеотидов и аминокислот в конкретной позиции. Для его заполнения реализованы методы $CalcFrequenciesNT$ и $CalcFrequenciesAA$.\\
 \begin{algorithm}
-	\caption{Определение операций объединения профилей} \label{lst:ProfilePlus}
+	\caption{Структура профилей} \label{lst:ProfileStruct}
 	\begin{lstlisting}
-// alignment of two profiles
-Profile& operator + (Profile&);
-// alignment of profile and sequence
-Profile& operator + (BioSeq*);
+struct Profile {
+  Profile();
+  ~Profile();
+  // data
+  std::vector<BioSeq*> sequences;
+  int frequency[128];
+  // alignment of two profiles
+  Profile& operator + (Profile& another);
+  // alignment of profile and sequence
+  Profile& operator + (BioSeq* sequence);
+  // get score in column
+  float ColumnNTscore(BioSeq* seq, int index1, int index2);
+  float ColumnAAscore(BioSeq* seq, int index1, int index2);
+  float ColumnNTscore(Profile& another, int index1, int index2);
+  float ColumnAAscore(Profile& another, int index1, int index2);
+  // fill an array of frequency
+  void CalcFrequenciesNT(int position);
+  void CalcFrequenciesAA(int position);
+  // insert gaps in sequences
+  void InsertGap(int pos, int count);
+  void InsertGap(int pos) {
+    for_each(sequences.begin(), sequences.end(), 
+      [pos] (BioSeq* s) {
+        s->nt_seq.insert(pos, 1, '-');
+      }
+    );
+  }
+};
 	\end{lstlisting}
 \end{algorithm}
 
-Кроме этого, профили имеют методы для вычисления оценки за сопоставление двух столбцов нуклеотидов и аминокислот. Так же, как и для структуры $BioSeq$ реализована возможность вставки разрывов по указанному индексу заданной длины.\\
+
 \indent При работе с профилями необходимо гарантировать, что ни одна из входящих в его состав последовательностей не будет модифицирована или удалена до конца построения выравнивания. В противном случае возможно появление ошибок выполнения или ухудшение качества результата. 
 
 \subsection[Общая схема работы]{\large Общая схема работы}
-\hspace{\parindent} В работе программы условно можно выделить три этапа: 
-\begin{itemize}
-\item Разбор входного потока
-\item Этап кластеризации --- определение текущей пары профилей для объединения
-\item Объединение профилей
-\end{itemize}
+\hspace{\parindent} На рисунке~\ref{ris:scheme} показана общая блок-схема работы программы. Основные этапы реализованы в виде отдельных, независимых друг от друга блоков, которые впоследствии можно модифицировать или заменить новыми. 
+\begin{figure}[H]
+	\center{\includegraphics[width=1.\linewidth]{block-scheme.png}}
+	\caption{Блок-схема работы программы}
+	\label{ris:scheme}
+\end{figure}
 
 \subsubsection[Чтение входных данных]{\large Чтение входных данных}
-\hspace{\parindent} На вход программе подается текстовый файл с последовательностями в формате FASTA~\cite{FASTAformat}. Строка, начинающаяся с символа '>', называется строкой описания. Она содержит имя последовательности и некоторую дополнительную информацию, предназначенную для идентификации. Другие строки, начинающиеся с символа ';', являются комментариями и игнорируются. За строкой описания следует код последовательности. При кодировании нуклеотидов буквами A, C, G и T кодируют, соответственно, аденин, цитозин, гуанин и тимин. На листинге~\ref{lst:Reader} представлена функция чтения файла формата FASTA. На вход подается имя файла и массив, куда необходимо сохранить полученные последовательности. Функция возвращает целое число 1, если при открытии указанного файла произошла ошибка, и 0 в противном случае.
-\begin{algorithm}
-	\caption{Функция чтения текстового файла в формате FASTA} \label{lst:Reader}
-	\begin{lstlisting}
-int ReadFastaFile(char* input_fasta, std::vector<BioSeq*>& result) {
-  std::filebuf fb;
-  if (fb.open(input_fasta, std::ios::in)) {
-    std::istream is(&fb);
-    while (is) {
-      std::string line;
-      std::getline(is, line);
-      if (line.size() && line[0] == '>') 
-        result.push_back(new BioSeq(line, ""));
-      else if (line.size()) result.back()->nt_seq += line;
-    }
-    fb.close();
-    return 0;
-  } 
-  return 1;
-}
-	\end{lstlisting}
-\end{algorithm}
+\hspace{\parindent} На вход программе подается текстовый файл с последовательностями в формате FASTA~\cite{FASTAformat}. Строка, начинающаяся с символа '>', называется строкой описания. Она содержит имя последовательности и некоторую дополнительную информацию, предназначенную для идентификации. Другие строки, начинающиеся с символа ';', являются комментариями и игнорируются. За строкой описания следует код последовательности. При кодировании нуклеотидов буквами A, C, G и T кодируют, соответственно, аденин, цитозин, гуанин и тимин. На рисунке~\ref{ris:FASTAexample} представлен пример тестового файла в формате FASTA.
+\begin{figure}[H]
+	\center{\includegraphics[width=1.\linewidth]{FASTAexample.png}}
+	\caption{Пример файла в формате FASTA}
+	\label{ris:FASTAexample}
+\end{figure}
 
 Программа может использовать для вычисления очков за сопоставление нуклеотидов и аминокислот пользовательские матрицы замен. Их необходимо представить в таком же формате, как и на рисунке~\ref{ris:BLOSUM62}.
 Строки, начинающиеся с символа $\#$, являются комментариями и игнорируются, а при задании таблицы первые строка и столбец определяют символы сопоставления. Количество пробелов может быть любым.
 
 \begin{figure}[h]
-	\center{\includegraphics[width=0.7\linewidth]{BLOSUM62.png}}
+	\center{\includegraphics[width=0.9\linewidth]{BLOSUM62.png}}
 	\caption{Пример файла с матрицей замен}
 	\label{ris:BLOSUM62}
 \end{figure}
