@@ -28,8 +28,12 @@
 
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm,bindingoffset=0cm]{geometry} % Меняем поля страницы
 
+\usepackage{setspace}
+\onehalfspacing % Полуторный интервал
 
 \begin{document} 
+\renewcommand{\figurename}{Рисунок}
+
 \input{DiplomProject-Title} 
 
 \renewcommand{\baselinestretch}{1.5}
@@ -63,6 +67,7 @@
 \clearpage
 \newpage
 \bibliographystyle{utf8gost705u}  %% стилевой файл для оформления по ГОСТу
+\addcontentsline{toc}{section}{\large СПИСОК ЛИТЕРАТУРЫ}
 \begin{flushleft}
 \bibliography{biblio}     %% имя библиографической базы (bib-файла) 
 \end{flushleft}
