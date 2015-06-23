@@ -95,6 +95,11 @@ public:
   
   // accessors
   int GetGapOpen() { return gap_open; } 
+  	\end{lstlisting}
+\end{algorithm}
+
+\begin{algorithm}
+	\begin{lstlisting}
   int GetGapExtension() { return gap_extension; } 
   int GetGapFrame() { return gap_frame; } 
   int GetStopCost() { return stop_cost; } 
@@ -108,10 +113,11 @@ public:
 	\caption{Структура профилей} \label{lst:ProfileStruct}
 	\begin{lstlisting}
 struct Profile {
-  std::vector<BioSeq*> sequences;
-  int frequency[128];
   Profile();
   ~Profile();
+  // data
+  std::vector<BioSeq*> sequences;
+  int frequency[128];
   // alignment of profiles and sequence
   Profile& operator + (Profile& another);
   Profile& operator + (BioSeq* sequence);
@@ -123,7 +129,12 @@ struct Profile {
   float ColumnNTscore(Profile& another, int index1, 
   					int index2);
   float ColumnAAscore(Profile& another, int index1, 
-  					int index2);
+   					int index2);
+  	\end{lstlisting}
+\end{algorithm}
+
+\begin{algorithm}
+	\begin{lstlisting}
   // fill an array of frequency
   void CalcFrequenciesNT(int position);
   void CalcFrequenciesAA(int position);
@@ -140,7 +151,7 @@ struct Profile {
 \subsection[Общая схема работы]{\large Общая схема работы}
 \hspace{\parindent} На рисунке~\ref{ris:scheme} изображена блок-схема работы программы. Основные этапы реализованы в виде отдельных, независимых друг от друга блоков, что дает возможность модифицировать их или заменить новыми. 
 \begin{figure}[H]
-	\center{\includegraphics[width=0.95\linewidth]{block-scheme.png}}
+	\center{\includegraphics[width=1\linewidth]{block-scheme.png}}
 	\caption{Блок-схема работы программы}
 	\label{ris:scheme}
 \end{figure}
@@ -182,13 +193,22 @@ struct Profile {
 	\begin{algorithmic}
 		\State $F \gets [$ $]$ \Comment{Матрица оптимальных ходов}
 		\Procedure{$ProfileMerge$}{$P_1, P_2$}
-		\If{$size(F)$ $<$ $len(P_1)$ OR $size(F)$ $<$ $len(P_2)$} \Comment{Проверка размерности матрицы}
+		\State \Comment{Проверка размерности матрицы}
+		\If{$size(F)$ $<$ $len(P_1)$ OR $size(F)$ $<$ $len(P_2)$} 
 			\State $new\_size \gets max(len(P_1), len(P_2))$
 			\State $F \gets [new\_size \times new\_size]$ \Comment{Выделение новой памяти}
 		\EndIf
+		\algstore{bkbreak}
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+	\begin{algorithmic}
+		\algrestore{bkbreak}
 		\For{$i = 1 \cdots len(P_1)$} \Comment{Цикл заполнения таблицы переходов}
 			\For{$j = 1 \cdots len(P_2)$}
-		        \State \text{Рассчет оптимального перехода,} \Comment{Позиция текущей ячейки --- $i$, $j$}
+				  \State \Comment{Позиция текущей ячейки --- $i$, $j$}
+			      \State \text{Рассчет оптимального перехода,} 
 		        \State \text{перебор 25 возможных вариантов}
 		    \EndFor
         \EndFor
@@ -230,7 +250,7 @@ struct Profile {
 \begin{center}
 \begin{tabular}{|p{2.4cm}|p{3.5cm}|p{5.cm}|p{4.4cm}|}
 \hline
-Короткие опции& Длинные опции& Значение& Комментарий\\
+Сокращенные опции& Полные опции& Значение& Комментарий\\
 \hline
 $-h$& $--help$& без аргумента& вывод справочной информации\\
 \hline
@@ -239,6 +259,17 @@ $-i$& $--input$& путь к файл с последовательностям�
 $-n$& $--NT\_subst$& путь к файлу с матрицей замен для нуклеотидов & по умолчанию: +4 за сопоставление одинаковых нуклеотидов и -5 в противном случае\\
 \hline
 $-a$& $--AA\_subst$& путь к файлу с матрицей замен для аминокислот& по умолчанию используется матрица замен BLOSUM62~\cite{BLOSUM62}\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[H]
+\small
+\begin{center}
+\begin{tabular}{|p{2.4cm}|p{3.5cm}|p{5.cm}|p{4.4cm}|}
+\hline
+Сокращенные опции& Полные опции& Значение& Комментарий\\
 \hline
 $-g$& $--gap\_open$& штраф за открытие разрыва& значение по умолчанию: -10\\
 \hline
@@ -260,7 +291,7 @@ $-p$& $--pairwise$& без аргумента& использовать в ка�
 
 При запуске приложения без указания входного файла или с использованием неверных опций будет выдано соответствующее сообщение об ошибке. В случае корректного задания входных параметров, произойдет чтение и разбор указанного набора последовательностей, после чего будет напечатана вся информация по заданной задаче выравнивания: количество полученных последовательностей, матрицы замен и параметры штрафов (листинг~\ref{lst:multyRun}).
 
-\begin{algorithm}
+\begin{algorithm}[H]
 	\caption{Примеры запуска программы} \label{lst:multyRun}
 	\begin{lstlisting}
 $ ./multy -s -40 -f 20
@@ -274,6 +305,11 @@ Reading sequences...
 7 sequences were obtained
 Input parameters:
 NT substitution matrix	NUC-45
+	\end{lstlisting}
+\end{algorithm}
+
+\begin{algorithm}
+	\begin{lstlisting}
 AA substitution matrix	BLOSUM62
 Gap open cost		-10
 Gap extension cost	-3
@@ -349,7 +385,7 @@ void UPGMA(std::vector<BioSeq*>& sequences, func dist,
 	\end{lstlisting}
 \end{algorithm}
 
-При сборке приложения c импортированными методами и структурами построения выравниваний, необходимо указать компилятору используемую библиотеку. Ниже представлен пример компиляция новой программы $new\_program.c++$ с библиотекой $libmulty.a$: 
+При сборке приложения c импортированными методами и структурами построения выравниваний, необходимо указать компилятору используемую библиотеку. Ниже представлен пример компиляция новой программы из исходного файла $new\_program.c++$ с библиотекой $libmulty.a$: 
 \begin{equation*}
 \texttt{g++ -std=c++11 -L./ -lmulty new\_program.c++ }
 \end{equation*}
