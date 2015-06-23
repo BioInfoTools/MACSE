@@ -13,7 +13,7 @@
 	\item $cost('-')$ --- штраф (число) за разрыв последовательности
 	\item $cost('!')$ --- штраф за разрыв рамки считывания
 	\item $cost('*')$ --- штраф за появление стоп-кодона не в конце последовательности
-	\item $\sigma(X, Y)$ --- оценка за сопоставление нуклеотидов (или аминокислот) $X$ и $Y$
+	\item $\sigma(X, Y)$ --- оценка за сопоставление нуклеотидов (или аминокислот) $X$~и~$Y$
 \end{itemize}
 
 \indent Перепишем в новых обозначениях рекурсивную формулу $cost(\mathcal{A}(S_1, S_2))$ для классического алгоритма Нидлмана-Вунша (\ref{eq:N_W_2}).
@@ -21,9 +21,12 @@
 \begin{equation}\label{eq:N_W_2}
 cost(\mathcal{A}(S_1[1:i], S_2[1:j])) = max\left\{
 \begin{aligned}
-& cost(\mathcal{A}(S_1[1:i-1], S_2[1:j-1])) + \sigma(S_1[i], S_2[j])\\
-& cost(\mathcal{A}(S_1[1:i-1], S_2[1:j])) + cost('-')\\
-& cost(\mathcal{A}(S_1[1:i], S_2[1:j-1])) + cost('-')
+& cost(\mathcal{A}(S_1[1:i-1], S_2[1:j-1]))\\
+& \hspace{1cm} + \sigma(S_1[i], S_2[j])\\
+& cost(\mathcal{A}(S_1[1:i-1], S_2[1:j]))\\
+& \hspace{1cm} + cost('-')\\
+& cost(\mathcal{A}(S_1[1:i], S_2[1:j-1]))\\
+& \hspace{1cm} + cost('-')
 \end{aligned}
 \right.
 \end{equation}
@@ -38,19 +41,22 @@ cost(\mathcal{A}(S_1[1:i], -)) = i\cdot cost('-')
 
 \indent Для получения выравнивания необходимо запомнить оптимальный выбор на каждом шаге рекурсии $cost(\mathcal{A}(S_1, S_2))=cost(\mathcal{A}(S_1[1:len(S_1)], S_2[1:len(S_2)]))$ и выполнить восстановление ответа (пункт~\ref{seq:NW}).\\
 \indent При построении выравнивания с учетом трансляции нуклеотидов необходимо связать уровни нуклеотидов и аминокислот. Введем дополнительную функцию $\pi(S)$, которая по входной последовательности нуклеотидов $S$ строит ее трансляцию $AA_S$. Трансляция происходит по первой рамке считывания (начиная с первого нуклеотида). Для обозначения неполных кодонов используется символ '!', а стоп-кодоны переводятся в символы '*' без остановки трансляции.\\
-\indent Запишем в новых обозначениях рекурсивную формулу $cost(\mathcal{A}(S_1, S_2))$ для алгоритма двухуровневого выравнивания (\ref{eq:AA_2}), рассмотренном в пункте~\ref{NTAAalign}.
+\indent Запишем в новых обозначениях рекурсивную формулу $cost(\mathcal{A}(S_1, S_2))$ для алгоритма двухуровневого выравнивания (\ref{eq:AA_2}), рассмотренном в пункте~\ref{NTAAalign}, где $AA_1=\pi(S_1[3i-2:3i])$ и $AA_2=\pi(S_2[3j-2:3j])$.
 
 \begin{equation}\label{eq:AA_2}
 cost(\mathcal{A}(S_1[1:3i], S_2[1:3j])) = max\left\{
 \begin{aligned}
-& cost(\mathcal{A}(S_1[1:3i-3], S_2[1:3j-3])) + \sigma(AA_1, AA_2)\\
-& cost(\mathcal{A}(S_1[1:3i-3], S_2[1:j])) + cost('-')\\
-& cost(\mathcal{A}(S_1[1:i], S_2[1:3j-3])) + cost('-')
+& cost(\mathcal{A}(S_1[1:3i-3],\\
+& \hspace{0.5cm} S_2[1:3j-3])) + \sigma(AA_1, AA_2)\\
+& cost(\mathcal{A}(S_1[1:3i-3], S_2[1:j]))\\
+& \hspace{0.5cm} + cost('-')\\
+& cost(\mathcal{A}(S_1[1:i], S_2[1:3j-3]))\\
+& \hspace{0.5cm}  + cost('-')
 \end{aligned}
 \right.
 \end{equation}
-где $AA_1=\pi(S_1[3i-2:3i])$ и $AA_2=\pi(S_2[3j-2:3j])$\\
-\indent В рассмотренных выше алгоритмах используется линейный штраф за разрыв последовательности. Для использования аффинного штрафа введем еще два параметра:
+
+В рассмотренных выше алгоритмах используется линейный штраф за разрыв последовательности. Для использования аффинного штрафа введем еще два параметра:
 \begin{itemize}
 	\item $cost(gap\_open)$ --- штраф за открытие разрыва
 	\item $cost(gap\_extension)$ --- штраф за продолжение разрыва
@@ -64,11 +70,11 @@ cost(\mathcal{A}(S_1[1:3i], S_2[1:3j])) = max\left\{
 
 \begin{figure}[h]
 	\begin{minipage}[h]{0.49\linewidth}
-		\center{\includegraphics[width=0.8\linewidth]{NW_example} \\ а) Выравнивание по алгоритму Нидлмана-Вунша}
+		\center{\includegraphics[width=0.9\linewidth]{NW_example} \\ а) Выравнивание по алгоритму Нидлмана-Вунша}
 	\end{minipage}
 	\hfill
 	\begin{minipage}[h]{0.49\linewidth}
-		\center{\includegraphics[width=0.8\linewidth]{multy_example} \\ б) Выравнивание по разработанному алгоритму}
+		\center{\includegraphics[width=0.9\linewidth]{multy_example} \\ б) Выравнивание по разработанному алгоритму}
 	\end{minipage}
 	\caption{Пример выравнивания двух последовательностей без учета аминокислотного уровня (а), и с его учетом (б). Одинаковым цветом отмечены одинаковые аминокислоты; неполные кодоны отмечены черным.}
 	\label{ris:NWvsMULTY}
@@ -77,24 +83,22 @@ cost(\mathcal{A}(S_1[1:3i], S_2[1:3j])) = max\left\{
 \indent Созданный алгоритм двухуровневого выравнивания на каждом этапе выбора рассматривает все возможные варианты сопоставления от нуля до трех нуклеотидов из каждой последовательности. Таким образом, общее число возможных переходов: $\sum_{i=1}^3 2\cdot 2^i-1=25$. Для наглядности эти варианты представлены на рисунке~\ref{ris:25variants}. 
 
 \begin{figure}[H]
-	\begin{minipage}[h]{0.49\linewidth}
-		\center{\includegraphics[width=0.65\linewidth]{NT-match} \\ а) Сопоставление нуклеотидов (3~возможных перехода)}
+	\begin{minipage}[h]{0.31\linewidth}
+		\center{\includegraphics[width=0.95\linewidth]{NT-match} \\ а) Сопоставление нуклеотидов (3~возможных перехода)}
 	\end{minipage}
 	\hfill
-	\begin{minipage}[h]{0.49\linewidth}
-		\center{\includegraphics[width=0.65\linewidth]{AA-match} \\ б) Сопоставление аминокислот (3~возможных перехода)}
+	\begin{minipage}[h]{0.31\linewidth}
+		\center{\includegraphics[width=0.95\linewidth]{AA-match} \\ б) Сопоставление аминокислот (3~возможных перехода)}
 	\end{minipage}
-	\vfill
-	\begin{center}
-		\begin{minipage}[h]{0.49\linewidth}
-			\center{\includegraphics[width=0.65\linewidth]{frame-shift} \\ в) Сопоставление неполных кодонов (19~возможных переходов)}
-		\end{minipage}
-	\end{center}
+	\hfill
+	\begin{minipage}[h]{0.31\linewidth}
+		\center{\includegraphics[width=0.95\linewidth]{frame-shift} \\ в) Сопоставление неполных кодонов (19~возможных переходов)}
+	\end{minipage}
 	\caption{Выбор оптимального шага. Правый нижний угол таблицы представляет собой текущую позицию. Серым выделены рассматриваемые клетки для перехода.}
 	\label{ris:25variants}
 \end{figure}
 
-\indent При сопоставлении неполных кодонов выходит так много вариантов, потомучто до рассматриваемых клеток перехода существует несколько возможных путей. Алгоритм учитывает их все, чтобы гарантировать оптимальное выравнивание на выходе. Ниже представлен псевдокод функции расчета $cost(\mathcal{A}(S_1, S_2))$ (листинг~\ref{lst:pairwise}).
+\indent При сопоставлении неполных кодонов выходит так много вариантов, потомучто до рассматриваемых клеток перехода существует несколько возможных путей. Алгоритм учитывает их все, чтобы гарантировать оптимальное выравнивание на выходе. Ниже представлен псевдокод функции расчета $cost($ $\mathcal{A}(S_1, S_2))$ (листинг~\ref{lst:pairwise}).
 
 \begin{algorithm}[H]
 	\caption{Рекурсивный алгоритм построения оптимального парного выравнивания двух кодирующих последовательностей нуклеотидов} \label{lst:pairwise}
@@ -128,20 +132,15 @@ cost(\mathcal{A}(S_1[1:3i], S_2[1:3j])) = max\left\{
 		\begin{aligned}
 			& CalcAlign(S_1, S_2, i-2, j-2) + \sigma(S_1[i-1], S_2[j-1]) \\ 
 			& \hspace{1cm}+ \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
-			& CalcAlign(S_1, S_2, i-2, j-1) + \sigma(S_1[i-1], S_2[j]) + 2\cdot cost('!')\\
-			& CalcAlign(S_1, S_2, i-2, j-1) + \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
+			& CalcAlign(S_1, S_2, i-2, j-1)\\
+			& \hspace{1cm}+ \sigma(S_1[i-1], S_2[j]) + 2\cdot cost('!')\\
+			& CalcAlign(S_1, S_2, i-2, j-1)\\
+			& \hspace{1cm}+ \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
 			& CalcAlign(S_1, S_2, i-2, j) + cost('!') + cost('-')\\
-			& CalcAlign(S_1, S_2, i-1, j-2) + \sigma(S_1[i], S_2[j-1]) + 2\cdot cost('!')\\
-			& CalcAlign(S_1, S_2, i-1, j-2) + \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
-			& CalcAlign(S_1, S_2, i, j-2) + cost('!') + cost('-')\\
-			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-2], S_2[j-1])\\ 
-			& \hspace{1cm} + \sigma(S_1[i-1], S_2[j]) + stopS_1 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-1], S_2[j-1])\\ 
-			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_1 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-2], S_2[j-1])\\ 
-			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_1 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i-2], S_2[j]) + stopS_1 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i-1], S_2[j]) + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-2)\\
+			& \hspace{1cm}+ \sigma(S_1[i], S_2[j-1]) + 2\cdot cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-2)\\
+			& \hspace{1cm}+ \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
 			& score
 		\end{aligned}
 		\right.$
@@ -154,23 +153,39 @@ cost(\mathcal{A}(S_1[1:3i], S_2[1:3j])) = max\left\{
 		\algrestore{bkbreak}
 		\State $score \gets max\left\{
 		\begin{aligned}	
-			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i], S_2[j]) + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i, j-2) + cost('!') + cost('-')\\
+			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-2], S_2[j-1])\\ 
+			& \hspace{1cm} + \sigma(S_1[i-1], S_2[j]) + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-1], S_2[j-1])\\ 
+			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-3, j-2) + \sigma(S_1[i-2], S_2[j-1])\\ 
+			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i-2], S_2[j])\\
+			& \hspace{1cm} + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i-1], S_2[j])\\
+			& \hspace{1cm} + stopS_1 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-3, j-1) + \sigma(S_1[i], S_2[j])\\
+			& \hspace{1cm} + stopS_1 + cost('!')\\
 			& CalcAlign(S_1, S_2, i-2, j-3) + \sigma(S_1[i-1], S_2[j-2])\\ 
 			& \hspace{1cm} + \sigma(S_1[i], S_2[j-1]) + stopS_2 + cost('!')\\
 			& CalcAlign(S_1, S_2, i-2, j-3) + \sigma(S_1[i-1], S_2[j-1])\\ 
 			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_2 + cost('!')\\
 			& CalcAlign(S_1, S_2, i-2, j-3) + \sigma(S_1[i-1], S_2[j-2])\\ 
 			& \hspace{1cm} + \sigma(S_1[i], S_2[j]) + stopS_2 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j-2]) + stopS_2 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j-1]) + stopS_2 + cost('!')\\
-			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j]) + stopS_2 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j-2])\\
+			& \hspace{1cm} + stopS_2 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j-1])\\
+			& \hspace{1cm} + stopS_2 + cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-3) + \sigma(S_1[i], S_2[j])\\
+			& \hspace{1cm} + stopS_2 + cost('!')\\
 			& score
 		\end{aligned}
 		\right.$
 		\Statex \Comment{Перебор вариантов: сопоставление нуклеотидов}
 		\State $score \gets max\left\{
 		\begin{aligned}
-			& CalcAlign(S_1, S_2, i-1, j-1) + \sigma(S_1[i], S_2[j]) + 2\cdot cost('!')\\
+			& CalcAlign(S_1, S_2, i-1, j-1) + \sigma(S_1[i], S_2[j])\\
+			& \hspace{1cm} + 2\cdot cost('!')\\
 			& CalcAlign(S_1, S_2, i-1, j) + cost('!') + cost('-')\\
 			& CalcAlign(S_1, S_2, i, j-1) + cost('!') + cost('-')\\
 			& score\\
@@ -200,7 +215,7 @@ D((i,j), w)=\frac{T_iD(i,w)+T_jD(j,w)}{T_i+T_j}
 \end{equation}
 где $T_k$ --- количество последовательностей в кластере $k$. Старые $i$ и $j$ столбцы и строки таблицы $D$ становятся недействительными. Таким образом, с каждой новой итерацией алгоритма происходит уменьшение числа кластеров на единицу: два кластера собираются в один. Финальное объединение двух последних кластеров даст итоговое выравнивание, содержащее все исходные последовательности нуклеотидов. На рисунке~\ref{ris:UPGMA} представлен пример работы алгоритма.
 \begin{figure}[h]
-	\center{\includegraphics[width=0.85\linewidth]{UPGMA.png}}
+	\center{\includegraphics[width=0.95\linewidth]{UPGMA.png}}
 	\caption{Изменение матрицы расстояний в процессе кластеризации. Красным цветом обозначены объединяемые кластеры.}
 	\label{ris:UPGMA}
 \end{figure}
@@ -208,11 +223,11 @@ D((i,j), w)=\frac{T_iD(i,w)+T_jD(j,w)}{T_i+T_j}
 \indent Необходимо отметить, что процесс кластеризации необязательно продолжать до объединения всех кластеров в один. Если найденный в таблице $D$ максимум чересчур мал, то это свидетельствует о слабом родстве последовательностей, и, чтобы не испортить построенное выравнивание, алгоритм можно остановить.
 
 \subsection[Построение множественного выравнивания]{\large Построение множественного выравнивания}
-\hspace{\parindent} Определим новое понятие <<профиль>> $P$ как набор выравненных строк. Используя рассмотренный выше алгоритм парного выравнивания, можно объединять две последовательности в один профиль $P_{12}=(\mathcal{A}(S_1, S_2)$. Для построения множественного выравнивания необходимо ввести операции сложения профилей $P_i + P_j$ и профиля со строкой $P_i + S_j$.\\
-\indent При переходе от последовательностей к профилям достаточно определиться с интерпретацией $\sigma(P_1[i], P_2[j])$/$\sigma(P_1[i], S_2[j])$ и $\sigma(\pi(P_1[i-2:i]), \pi(P_2[j-2:j]))$/$\sigma(\pi(P_1[i-2:i]), \pi(S_2[j-2:j]))$, чтобы использовать алгоритм парного выравнивания для операций объединения. В отличие от строки, у профиля по $i$-ой позиции находится набор нуклеотидов из всех входящих в него последовательностей по $i$-ому индексу (рисунок~\ref{ris:profile}). Для каждого такого столбца $i=1 \dots len(P)$, где $len(P)$ --- длина профиля, можно рассчитать частоты встречающихся символов.
+\hspace{\parindent} Введем обозначение <<профиль>> $P$ как набор выравненных строк. Используя рассмотренный выше алгоритм парного выравнивания, можно объединять две последовательности в один профиль $P_{12}=(\mathcal{A}(S_1, S_2)$. Для построения множественного выравнивания необходимо ввести операции сложения профилей $P_i + P_j$ и профиля со строкой $P_i + S_j$.\\
+\indent При переходе от последовательностей к профилям достаточно определиться с интерпретацией $\sigma(P_1[i], P_2[j])$/$\sigma(P_1[i], S_2[j])$ и $\sigma(\pi(P_1[i-2:i]),$ $\pi(P_2[$ $j-2:j]))$/$\sigma(\pi(P_1[i-2:i]), \pi(S_2[j-2:j]))$, чтобы использовать алгоритм парного выравнивания для операций объединения. В отличие от строки, у профиля по $i$-ой позиции находится набор нуклеотидов из всех входящих в него последовательностей по $i$-ому индексу (рисунок~\ref{ris:profile}). Для каждого такого столбца $i=1 \dots len(P)$, где $len(P)$ --- длина профиля, можно рассчитать частоты встречающихся символов.
 
 \begin{figure}[h]
-	\center{\includegraphics[width=0.6\linewidth]{profile.png}}
+	\center{\includegraphics[width=0.8\linewidth]{profile.png}}
 	\caption{Профиль из четырех последовательностей и распределение частот для $i$-го столбца}
 	\label{ris:profile}
 \end{figure}
