@@ -4,5 +4,5 @@ Investigation of methods of multiple alignment of the nucleotide sequences in ac
 
 forked from BMSTUcoolGuys/MACSE
 
-macse_v1.01b.jar is the same as that from http://bioweb.supagro.inra.fr/macse/index.php?menu=releases&option=releases 
+macse_v1.01b.jar is the same as that from http://bioweb.supagro.inra.fr/macse/index.php?menu=releases&option=releases  
 51db7fc2c924dcb8397a142579a04b14b785a2c6  macse_v1.01b.jar
